@@ -21,6 +21,7 @@
 #' @importFrom ANTsRCore getMask
 #' @importFrom ANTsRCore ripmmarc
 #' @importFrom ANTsRCore ripmmarcPop
+#' @importFrom ANTsRCore usePkg
 #' @importFrom ANTsRCore randomMask
 #' @importFrom stats predict
 #' @import methods
@@ -201,7 +202,7 @@ rcTestingMatrix <- function( x, masks, rcb, patchRadius = 3, nsamples = 1000, se
 #' @export rcTrain
 rcTrain <- function( y, trainingDf ) {
   trainingDf$y = y
-  if ( !usePkg("h2o") ) {
+  if ( !ANTsRCore::usePkg("h2o") ) {
     mdl = lm( y ~ . , data = trainingDf )
     return( mdl )
   } else {
@@ -230,7 +231,7 @@ rcTrain <- function( y, trainingDf ) {
 #'
 #' @export rcPredict
 rcPredict <- function( mdl, testingDf ) {
-  if ( !usePkg("h2o") ) {
+  if ( !ANTsRCore::usePkg("h2o") ) {
     return( predict( mdl ) )
   } else {
     tempath = tempfile( pattern = "h2otestfile", tmpdir = tempdir(), fileext = ".csv")
