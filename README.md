@@ -62,7 +62,7 @@ plot( mm )
 
 # or if h2o works on your machine
 trn = rcTrain( trnMat1$y, traindf )
-prd = rcPredict( trn, trnMat )
+prd = rcPredict( trn, testdf )
 mm = makeImage( maskstest[[1]], prd  )
 plot( mm )
 

@@ -22,6 +22,7 @@
 #' @importFrom ANTsRCore ripmmarc
 #' @importFrom ANTsRCore ripmmarcPop
 #' @importFrom ANTsRCore randomMask
+#' @importFrom stats predict
 #' @import methods
 #' @import h2o
 rcBasis <- function( x, patchRadius = 3  ) {
@@ -47,10 +48,10 @@ rcBasis <- function( x, patchRadius = 3  ) {
     }
   if ( isFilename ) {
     rp = ANTsRCore::ripmmarcPop( ANTsRCore::imageFileNames2ImageList( x ),
-      popmasks, patchRadius=patchRadius, meanCenter = FALSE, patchSamples=nsam )
+      popmasks, patchRadius=patchRadius, meanCenter = TRUE, patchSamples=nsam )
     } else {
     rp = ANTsRCore::ripmmarcPop( x,
-      popmasks, patchRadius=patchRadius, meanCenter = FALSE, patchSamples=nsam )
+      popmasks, patchRadius=patchRadius, meanCenter = TRUE, patchSamples=nsam )
     }
   return( rp )
 }
@@ -104,7 +105,7 @@ rcTrainingMatrix <- function( y, x, masks, rcb, patchRadius = 3, nsamples = 1000
     if ( isFilename ) yimg = ANTsRCore::antsImageRead( y[ i ] ) else yimg = y[[ i ]]
     if ( isFilename ) img = ANTsRCore::antsImageRead( x[ i ] ) else img = x[[ i ]]
     if ( isFilename ) msk = ANTsRCore::antsImageRead( masks[ i ] ) else msk = masks[[ i ]]
-    ripped = ripmmarc( img, msk, patchRadius = patchRadius, meanCenter = FALSE,
+    ripped = ripmmarc( img, msk, patchRadius = patchRadius, meanCenter = TRUE,
         patchSamples = nsamples,
         evecBasis = rcb$basisMat, patchVarEx = nrow(rcb$basisMat),
         canonicalFrame = rcb$canonicalFrame, regressProjections = TRUE,
@@ -164,7 +165,7 @@ rcTestingMatrix <- function( x, masks, rcb, patchRadius = 3, nsamples = 1000, se
   for ( i in 1:length( x ) ) {
     if ( isFilename ) img = ANTsRCore::antsImageRead( x[ i ] ) else img = x[[ i ]]
     if ( isFilename ) msk = ANTsRCore::antsImageRead( masks[ i ] ) else msk = masks[[ i ]]
-    ripped = ripmmarc( img, msk, patchRadius = patchRadius, meanCenter = FALSE,
+    ripped = ripmmarc( img, msk, patchRadius = patchRadius, meanCenter = TRUE,
         patchSamples = nsamples,
         evecBasis = rcb$basisMat, patchVarEx = nrow(rcb$basisMat),
         canonicalFrame = rcb$canonicalFrame, regressProjections = TRUE,
