@@ -12,11 +12,12 @@ Maintainer: Brian B. Avants <stnava@gmail.com>
 Description: Leverage RIPMMARC, RIPMMARC-POP and deep learning tools
     to perform patch-based image translation.  Training can be done on
     relatively small n datasets.
-License: Apache (>= 2)
+License: Apache License (>=2.0)
 LazyLoad: yes
 Depends:
     R (>= 2.10),
     methods,
-    ANTsRCore (>= 0.2),
-    ANTsR,
+    ANTsR
+Imports:
     h2o
+RoxygenNote: 6.0.1
