@@ -91,7 +91,7 @@ popGT = list( )  # ground truth
 popGR = list( )  # gradient
 masks = list( )  # sample masks
 nsam = 5000 # samples
-myPR = 3
+myPR = 4
 for ( i in 1:length( popfns ) ) {
   popGT[[ i ]] = antsImageRead( getANTsRData( popfns[ i ] ) )
   popGR[[ i ]] = thresholdImage( popGT[[ i ]], "Otsu", 3 )
