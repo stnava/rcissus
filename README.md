@@ -9,7 +9,7 @@ devtools::install_github("stnava/rcissus")
 an example predicting raw intensity from gradient and laplacian images
 
 ```
-
+# step 1 - collect data
 library( rcissus )
 popfns = getANTsRData('show')[1:5]
 testfn = getANTsRData('show')[6]
@@ -35,7 +35,7 @@ trnMat2 = rcTrainingMatrix( popGT, popLA, masks, trnBas, seeds = myseeds, patchR
 print( table( trnMat2$y==trnMat1$y ) ) # should be equivalent
 
 
-# build similar data for prediction - but use a dense mask
+# step 2 - build similar data for prediction - but use a dense mask
 popGTtest = list( )  # ground truth
 popGRtest = list( )  # gradient
 popLAtest = list( )  # laplacian
@@ -49,22 +49,25 @@ for ( i in 1:length( testfn ) ) {
 testMat1 = rcTestingMatrix( popGRtest, maskstest, trnBas, seeds = 1, patchRadius = myPR )
 testMat2 = rcTestingMatrix( popLAtest, maskstest, trnBas, seeds = 1, patchRadius = myPR )
 
-# now implement the training and testing
+# step 3 - now implement the training and testing
 traindf = data.frame( trnMat1$x, trnMat2$x, trnMat1$position )
 testdf = data.frame( testMat1$x, testMat2$x, testMat1$position )
-library( randomForest )
-library( e1071 )  # alternatively could use h2o or tensorflow
-# model interactions with position
-trn = svm(  trnMat1$y ~  ( . ) * X1 * X2 , data = traindf )
-prd = predict( trn, newdata = testdf )
-mm = makeImage( maskstest[[1]], prd  )
-plot( mm )
-
-# or if h2o works on your machine
+# if h2o works on your machine, use deep learning
 trn = rcTrain( trnMat1$y, traindf )
 prd = rcPredict( trn, testdf )
 mm = makeImage( maskstest[[1]], prd  )
 plot( mm )
+
+
+# if h2o does not work, you can use other models
+library( randomForest )
+library( e1071 )  # alternatively could use h2o or tensorflow
+# model interactions with position
+# trn = svm(  trnMat1$y ~  ( . ) * X1 * X2 , data = traindf )
+# prd = predict( trn, newdata = testdf )
+# mm = makeImage( maskstest[[1]], prd  )
+# plot( mm )
+
 
 
 ```

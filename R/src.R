@@ -190,28 +190,30 @@ rcTestingMatrix <- function( x, masks, rcb, patchRadius = 3, nsamples = 1000, se
 
 #' rcTrain
 #'
-#' Train a rcissus model
+#' Train a rcissus model with \code{lm} or deep learning from \code{h2o}
 #'
 #' @param y outcome vector
 #' @param trainingDf input training data
+#' @param epochs number of epochs (integer) over which to train
+#' @param max_mem sets maximum allowable memory for h2o deep learning
 #' @return model is output
 #' @author Avants BB
 #' @importFrom stats lm
 #' @seealso \code{\link[ANTsRCore]{ripmmarcPop}} \url{https://antsx.github.io/ANTsRCore/reference/ripmmarcPop.html}
 #'
 #' @export rcTrain
-rcTrain <- function( y, trainingDf ) {
+rcTrain <- function( y, trainingDf, epochs = 200, max_mem = "100G" ) {
   trainingDf$y = y
   if ( !ANTsRCore::usePkg("h2o") ) {
     mdl = lm( y ~ . , data = trainingDf )
     return( mdl )
   } else {
-    localH2O <- h2o::h2o.init( nthreads = -1 , max_mem_size = "100G" ) # all cores
+    localH2O <- h2o::h2o.init( nthreads = -1 , max_mem_size = max_mem ) # all cores
     h2o::h2o.init()
     tempath = tempfile( pattern = "h2ofile", tmpdir = tempdir(), fileext = ".csv")
     write.csv( trainingDf, tempath, row.names = FALSE )
     train.h2o <- h2o::h2o.importFile( tempath )
-    mdl = h2o::h2o.deeplearning( y = "y",  training_frame = train.h2o, epochs=200 )
+    mdl = h2o::h2o.deeplearning( y = "y",  training_frame = train.h2o, epochs=epochs )
     return( mdl )
   }
 }
