@@ -19,5 +19,6 @@ Depends:
     methods,
     ANTsR
 Imports:
+    ANTsRCore,
     h2o
 RoxygenNote: 6.0.1
