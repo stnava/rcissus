@@ -46,7 +46,6 @@ for ( i in 1:length( testfn ) ) {
   popLAtest[[ i ]] = iMath( popGTtest[[ i ]], "Laplacian", 1 )
   maskstest[[ i ]] = getMask( popGTtest[[ i ]] ) # NOTE: dense prediction!
   }
-
 testMat1 = rcTestingMatrix( popGRtest, maskstest, trnBas, seeds = 1, patchRadius = myPR )
 testMat2 = rcTestingMatrix( popLAtest, maskstest, trnBas, seeds = 1, patchRadius = myPR )
 
@@ -54,13 +53,18 @@ testMat2 = rcTestingMatrix( popLAtest, maskstest, trnBas, seeds = 1, patchRadius
 traindf = data.frame( trnMat1$x, trnMat2$x, trnMat1$position )
 testdf = data.frame( testMat1$x, testMat2$x, testMat1$position )
 library( randomForest )
-library( e1071 )
+library( e1071 )  # alternatively could use h2o or tensorflow
 # model interactions with position
 trn = svm(  trnMat1$y ~  ( . ) * X1 * X2 , data = traindf )
 prd = predict( trn, newdata = testdf )
 mm = makeImage( maskstest[[1]], prd  )
 plot( mm )
-# trn = rcTrain( trnMat1$y, traindf )
-# prd = rcPredict( trn, trnMat )
+
+# or if h2o works on your machine
+trn = rcTrain( trnMat1$y, traindf )
+prd = rcPredict( trn, trnMat )
+mm = makeImage( maskstest[[1]], prd  )
+plot( mm )
+
 
 ```

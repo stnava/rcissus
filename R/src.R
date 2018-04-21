@@ -127,28 +127,6 @@ rcTrainingMatrix <- function( y, x, masks, rcb, patchRadius = 3, nsamples = 1000
 
 
 
-#' rcTrain
-#'
-#' Train a rcissus model
-#'
-#' @param y outcome vector
-#' @param trainingDf input training data
-#' @return model is output
-#' @author Avants BB
-#' @seealso \code{\link[ANTsRCore]{ripmmarcPop}} \url{https://antsx.github.io/ANTsRCore/reference/ripmmarcPop.html}
-#'
-#' @export rcTrain
-rcTrain <- function( y, trainingDf ) {
-  localH2O <- h2o::h2o.init( nthreads = -1 , max_mem_size = "100G" ) # all cores
-  h2o::h2o.init()
-  tempath = tempfile( pattern = "h2ofile", tmpdir = tempdir(), fileext = ".csv")
-  trainingDf$y = y
-  write.csv( trainingDf, tempath, row.names = FALSE )
-  train.h2o <- h2o::h2o.importFile( tempath )
-  mdl = h2o::h2o.deeplearning( y = "y",  training_frame = train.h2o, epochs=200 )
-  return( mdl )
-}
-
 #' rcTestingMatrix
 #'
 #' Build a rcissus testing matrix
@@ -186,7 +164,7 @@ rcTestingMatrix <- function( x, masks, rcb, patchRadius = 3, nsamples = 1000, se
   for ( i in 1:length( x ) ) {
     if ( isFilename ) img = ANTsRCore::antsImageRead( x[ i ] ) else img = x[[ i ]]
     if ( isFilename ) msk = ANTsRCore::antsImageRead( masks[ i ] ) else msk = masks[[ i ]]
-    ripped = ripmmarc( img, msk, patchRadius = patchRadius, meanCenter = TRUE,
+    ripped = ripmmarc( img, msk, patchRadius = patchRadius, meanCenter = FALSE,
         patchSamples = nsamples,
         evecBasis = rcb$basisMat, patchVarEx = nrow(rcb$basisMat),
         canonicalFrame = rcb$canonicalFrame, regressProjections = TRUE,
@@ -202,4 +180,61 @@ rcTestingMatrix <- function( x, masks, rcb, patchRadius = 3, nsamples = 1000, se
 
   return( list( x = xmat, position = spatialMat ) )
 
+}
+
+
+
+
+
+#' rcTrain
+#'
+#' Train a rcissus model
+#'
+#' @param y outcome vector
+#' @param trainingDf input training data
+#' @return model is output
+#' @author Avants BB
+#' @importFrom stats lm
+#' @seealso \code{\link[ANTsRCore]{ripmmarcPop}} \url{https://antsx.github.io/ANTsRCore/reference/ripmmarcPop.html}
+#'
+#' @export rcTrain
+rcTrain <- function( y, trainingDf ) {
+  trainingDf$y = y
+  if ( !usePkg("h2o") ) {
+    mdl = lm( y ~ . , data = trainingDf )
+    return( mdl )
+  } else {
+    localH2O <- h2o::h2o.init( nthreads = -1 , max_mem_size = "100G" ) # all cores
+    h2o::h2o.init()
+    tempath = tempfile( pattern = "h2ofile", tmpdir = tempdir(), fileext = ".csv")
+    write.csv( trainingDf, tempath, row.names = FALSE )
+    train.h2o <- h2o::h2o.importFile( tempath )
+    mdl = h2o::h2o.deeplearning( y = "y",  training_frame = train.h2o, epochs=200 )
+    return( mdl )
+  }
+}
+
+
+
+
+#' rcPredict
+#'
+#' Predict from a rcissus model
+#'
+#' @param mdl input trained model
+#' @param testingDf input testing data
+#' @return prediction is output
+#' @author Avants BB
+#' @importFrom stats lm
+#'
+#' @export rcPredict
+rcPredict <- function( mdl, testingDf ) {
+  if ( !usePkg("h2o") ) {
+    return( predict( mdl ) )
+  } else {
+    tempath = tempfile( pattern = "h2otestfile", tmpdir = tempdir(), fileext = ".csv")
+    write.csv( testingDf, tempath, row.names = FALSE )
+    h2otest <- h2o.importFile( tempath )
+    return( as.data.frame( h2o.predict( mdl, h2otest ) )[,1] )
+  }
 }
