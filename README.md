@@ -1,6 +1,7 @@
 # rcissus
 
-fast approach to mapping between image representations or modalities
+fast approach to patch-based deep learning segmentation or image translation
+(mapping intensities between imaging modalities).
 
 ```
 devtools::install_github("stnava/rcissus")

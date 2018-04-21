@@ -1,6 +1,6 @@
 Package: rcissus
 Type: Package
-Title: Fast Translation Between Image Modalities
+Title: Fast Segmentation Or Image Translation With Deep Learning
 Version: 1.0
 Date: 2018-04-21
 Authors@R: c(
