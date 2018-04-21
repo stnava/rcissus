@@ -4,12 +4,14 @@
 \alias{rcPredict}
 \title{rcPredict}
 \usage{
-rcPredict(mdl, testingDf)
+rcPredict(mdl, testingDf, classification = FALSE)
 }
 \arguments{
 \item{mdl}{input trained model}
 
 \item{testingDf}{input testing data}
+
+\item{classification}{boolean}
 }
 \value{
 prediction is output
