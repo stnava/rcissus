@@ -223,7 +223,14 @@ rcTrain <- function( y, trainingDf,
     tempath = tempfile( pattern = "h2ofile", tmpdir = tempdir(), fileext = ".csv")
     write.csv( trainingDf, tempath, row.names = FALSE )
     train.h2o <- h2o::h2o.importFile( tempath )
-    mdl = h2o::h2o.deeplearning( y = "y",  training_frame = train.h2o, epochs=epochs )
+    mdl = h2o::h2o.deeplearning( y = "y",
+      training_frame = train.h2o,
+#      activation = "Rectifier",    ## default
+      hidden= c(
+        ncol( trainingDf ),
+        ncol( trainingDf ),
+        round( ncol( trainingDf ) / 2 ) ),       ## default: 2 hidden layers with 200 neurons each
+      epochs=epochs )
     return( mdl )
   }
 }
@@ -237,18 +244,24 @@ rcTrain <- function( y, trainingDf,
 #'
 #' @param mdl input trained model
 #' @param testingDf input testing data
+#' @param classification boolean
 #' @return prediction is output
 #' @author Avants BB
 #' @importFrom stats lm
 #'
 #' @export rcPredict
-rcPredict <- function( mdl, testingDf ) {
+rcPredict <- function( mdl, testingDf, classification = FALSE ) {
   if ( !ANTsRCore::usePkg("h2o") ) {
     return( predict( mdl ) )
   } else {
     tempath = tempfile( pattern = "h2otestfile", tmpdir = tempdir(), fileext = ".csv")
     write.csv( testingDf, tempath, row.names = FALSE )
     h2otest <- h2o.importFile( tempath )
-    return( as.data.frame( h2o.predict( mdl, h2otest ) )[,1] )
+    if ( classification ) {
+      outdf = as.data.frame( h2o.predict( mdl, h2otest ) )
+    } else {
+      outdf = as.data.frame( h2o.predict( mdl, h2otest )[,1] )
+    }
+    return( outdf )
   }
 }

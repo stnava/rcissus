@@ -118,9 +118,16 @@ traindf = data.frame( trnMat1$x, position=trnMat1$position )
 testdf = data.frame( testMat1$x, position=testMat1$position )
 # if h2o works on your machine, use deep learning
 trn = rcTrain( trnMat1$y, traindf, classification = TRUE )
-prd = rcPredict( trn, testdf )
-mm = makeImage( maskstest[[1]], prd  )
-plot( mm )
+prd = rcPredict( trn, testdf, classification = TRUE )
+prdnumerics = as.numeric(prd$predict) - 1
+mm = makeImage( maskstest[[1]], prdnumerics  )
+sel = maskstest[[ 1 ]] == 1
+gtvals = popGRtest[[ 1 ]][ sel ]
+print( table( gtvals == prdnumerics  )  )
+plot( popGTtest[[ 1 ]], mm, window.overay = range( mm ), alpha = 0.6 )
+plot( popGTtest[[ 1 ]], popGRtest[[ 1 ]], window.overay = range( mm ), alpha = 0.6 )
+mm = makeImage( maskstest[[1]], prd[ , "class_2" ]  )
+plot( mm  )
 ```
 
 
