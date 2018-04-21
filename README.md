@@ -122,3 +122,8 @@ prd = rcPredict( trn, testdf )
 mm = makeImage( maskstest[[1]], prd  )
 plot( mm )
 ```
+
+
+Note: one may want to customize the deep learning components used here, which
+are simply the defaults provided in h2o.  One can inspect the code in order to
+get started on this, as well as the h2o documentation.
