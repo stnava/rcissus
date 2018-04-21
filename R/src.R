@@ -199,6 +199,7 @@ rcTestingMatrix <- function( x, masks, rcb, patchRadius = 3, meanCenter = FALSE,
 #'
 #' @param y outcome vector
 #' @param trainingDf input training data
+#' @param hidden Hidden layer sizes (e.g. \code{c(100,100)}). Defaults to \code{c(200,200)}.
 #' @param classification boolean
 #' @param epochs number of epochs (integer) over which to train
 #' @param max_mem sets maximum allowable memory for h2o deep learning
@@ -208,7 +209,7 @@ rcTestingMatrix <- function( x, masks, rcb, patchRadius = 3, meanCenter = FALSE,
 #' @seealso \code{\link[ANTsRCore]{ripmmarcPop}} \url{https://antsx.github.io/ANTsRCore/reference/ripmmarcPop.html}
 #'
 #' @export rcTrain
-rcTrain <- function( y, trainingDf,
+rcTrain <- function( y, trainingDf, hidden = c( 200, 200 ),
   classification = FALSE,
 #  nfolds = 5,
   epochs = 200, max_mem = "100G" ) {
@@ -226,11 +227,8 @@ rcTrain <- function( y, trainingDf,
     mdl = h2o::h2o.deeplearning( y = "y",
       training_frame = train.h2o,
 #      activation = "Rectifier",    ## default
-      hidden= c(
-        ncol( trainingDf ),
-        ncol( trainingDf ),
-        round( ncol( trainingDf ) / 2 ) ),       ## default: 2 hidden layers with 200 neurons each
-      epochs=epochs )
+      hidden = hidden,       ## default: 2 hidden layers with 200 neurons each
+      epochs = epochs )
     return( mdl )
   }
 }
