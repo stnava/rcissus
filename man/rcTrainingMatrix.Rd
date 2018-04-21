@@ -4,7 +4,8 @@
 \alias{rcTrainingMatrix}
 \title{rcTrainingMatrix}
 \usage{
-rcTrainingMatrix(y, x, masks, rcb, patchRadius = 3, nsamples = 1000, seeds)
+rcTrainingMatrix(y, x, masks, rcb, patchRadius = 3, meanCenter = FALSE,
+  nsamples = 1000, seeds)
 }
 \arguments{
 \item{y}{input filenames or image list defining ground truth}
@@ -16,6 +17,8 @@ rcTrainingMatrix(y, x, masks, rcb, patchRadius = 3, nsamples = 1000, seeds)
 \item{rcb}{input image basis from \code{\link{rcBasis}}}
 
 \item{patchRadius}{patch radius, integer value}
+
+\item{meanCenter}{boolean}
 
 \item{nsamples}{number of samples per image}
 

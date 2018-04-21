@@ -4,6 +4,7 @@
 #'
 #' @param x input filenames or image list
 #' @param patchRadius patch radius, integer value
+#' @param meanCenter boolean
 #' @return basis is output
 #' @author Avants BB
 #' @seealso \code{\link[ANTsRCore]{ripmmarcPop}} \url{https://antsx.github.io/ANTsRCore/reference/ripmmarcPop.html}
@@ -26,7 +27,7 @@
 #' @importFrom stats predict
 #' @import methods
 #' @import h2o
-rcBasis <- function( x, patchRadius = 3  ) {
+rcBasis <- function( x, patchRadius = 3, meanCenter = FALSE  ) {
   maskType = 'dense'
   if ( ! ( maskType %in% c("sparse","dense") ) ) stop("pass dense or sparse as maskType" )
   if ( length( x ) < 1 ) stop( "pass in a non-zero length input" )
@@ -49,10 +50,10 @@ rcBasis <- function( x, patchRadius = 3  ) {
     }
   if ( isFilename ) {
     rp = ANTsRCore::ripmmarcPop( ANTsRCore::imageFileNames2ImageList( x ),
-      popmasks, patchRadius=patchRadius, meanCenter = TRUE, patchSamples=nsam )
+      popmasks, patchRadius=patchRadius, meanCenter = FALSE, patchSamples=nsam )
     } else {
     rp = ANTsRCore::ripmmarcPop( x,
-      popmasks, patchRadius=patchRadius, meanCenter = TRUE, patchSamples=nsam )
+      popmasks, patchRadius=patchRadius, meanCenter = FALSE, patchSamples=nsam )
     }
   return( rp )
 }
@@ -69,6 +70,7 @@ rcBasis <- function( x, patchRadius = 3  ) {
 #' @param masks input filenames or image list defining training modality masks
 #' @param rcb input image basis from \code{\link{rcBasis}}
 #' @param patchRadius patch radius, integer value
+#' @param meanCenter boolean
 #' @param nsamples number of samples per image
 #' @param seeds random seeds for reproducibility across training modalities
 #' @return training matrix and vector (ground truth) is output in list
@@ -76,7 +78,8 @@ rcBasis <- function( x, patchRadius = 3  ) {
 #' @seealso \code{\link[ANTsRCore]{ripmmarcPop}} \url{https://antsx.github.io/ANTsRCore/reference/ripmmarcPop.html}
 #'
 #' @export rcTrainingMatrix
-rcTrainingMatrix <- function( y, x, masks, rcb, patchRadius = 3, nsamples = 1000, seeds ) {
+rcTrainingMatrix <- function( y, x, masks, rcb, patchRadius = 3,
+  meanCenter = FALSE, nsamples = 1000, seeds ) {
   if ( length( x ) < 1 ) stop( "pass in a non-zero length input" )
   if ( length( x ) != length( y ) ) stop( "length of y should equal length of x" )
 
@@ -106,7 +109,7 @@ rcTrainingMatrix <- function( y, x, masks, rcb, patchRadius = 3, nsamples = 1000
     if ( isFilename ) yimg = ANTsRCore::antsImageRead( y[ i ] ) else yimg = y[[ i ]]
     if ( isFilename ) img = ANTsRCore::antsImageRead( x[ i ] ) else img = x[[ i ]]
     if ( isFilename ) msk = ANTsRCore::antsImageRead( masks[ i ] ) else msk = masks[[ i ]]
-    ripped = ripmmarc( img, msk, patchRadius = patchRadius, meanCenter = TRUE,
+    ripped = ripmmarc( img, msk, patchRadius = patchRadius, meanCenter = FALSE,
         patchSamples = nsamples,
         evecBasis = rcb$basisMat, patchVarEx = nrow(rcb$basisMat),
         canonicalFrame = rcb$canonicalFrame, regressProjections = TRUE,
@@ -137,13 +140,15 @@ rcTrainingMatrix <- function( y, x, masks, rcb, patchRadius = 3, nsamples = 1000
 #' @param masks input filenames or image list defining testing modality masks
 #' @param rcb input image basis from \code{\link{rcBasis}}
 #' @param patchRadius patch radius, integer value
+#' @param meanCenter boolean
 #' @param nsamples number of samples per image
 #' @param seeds random seeds for reproducibility across testing modalities
 #' @return testing matrix is output in list
 #' @author Avants BB
 #'
 #' @export rcTestingMatrix
-rcTestingMatrix <- function( x, masks, rcb, patchRadius = 3, nsamples = 1000, seeds ) {
+rcTestingMatrix <- function( x, masks, rcb, patchRadius = 3, meanCenter = FALSE,
+  nsamples = 1000, seeds ) {
 
   if ( length( x ) < 1 ) stop( "pass in a non-zero length input" )
 
@@ -166,7 +171,7 @@ rcTestingMatrix <- function( x, masks, rcb, patchRadius = 3, nsamples = 1000, se
   for ( i in 1:length( x ) ) {
     if ( isFilename ) img = ANTsRCore::antsImageRead( x[ i ] ) else img = x[[ i ]]
     if ( isFilename ) msk = ANTsRCore::antsImageRead( masks[ i ] ) else msk = masks[[ i ]]
-    ripped = ripmmarc( img, msk, patchRadius = patchRadius, meanCenter = TRUE,
+    ripped = ripmmarc( img, msk, patchRadius = patchRadius, meanCenter = FALSE,
         patchSamples = nsamples,
         evecBasis = rcb$basisMat, patchVarEx = nrow(rcb$basisMat),
         canonicalFrame = rcb$canonicalFrame, regressProjections = TRUE,
@@ -194,6 +199,7 @@ rcTestingMatrix <- function( x, masks, rcb, patchRadius = 3, nsamples = 1000, se
 #'
 #' @param y outcome vector
 #' @param trainingDf input training data
+#' @param classification boolean
 #' @param epochs number of epochs (integer) over which to train
 #' @param max_mem sets maximum allowable memory for h2o deep learning
 #' @return model is output
@@ -202,8 +208,12 @@ rcTestingMatrix <- function( x, masks, rcb, patchRadius = 3, nsamples = 1000, se
 #' @seealso \code{\link[ANTsRCore]{ripmmarcPop}} \url{https://antsx.github.io/ANTsRCore/reference/ripmmarcPop.html}
 #'
 #' @export rcTrain
-rcTrain <- function( y, trainingDf, epochs = 200, max_mem = "100G" ) {
+rcTrain <- function( y, trainingDf,
+  classification = FALSE,
+#  nfolds = 5,
+  epochs = 200, max_mem = "100G" ) {
   trainingDf$y = y
+  if ( classification ) trainingDf$y = factor( paste0( "class_", as.character( y ) ) )
   if ( !ANTsRCore::usePkg("h2o") ) {
     mdl = lm( y ~ . , data = trainingDf )
     return( mdl )

@@ -4,12 +4,15 @@
 \alias{rcTrain}
 \title{rcTrain}
 \usage{
-rcTrain(y, trainingDf, epochs = 200, max_mem = "100G")
+rcTrain(y, trainingDf, classification = FALSE, epochs = 200,
+  max_mem = "100G")
 }
 \arguments{
 \item{y}{outcome vector}
 
 \item{trainingDf}{input training data}
+
+\item{classification}{boolean}
 
 \item{epochs}{number of epochs (integer) over which to train}
 

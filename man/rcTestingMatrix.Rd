@@ -4,7 +4,8 @@
 \alias{rcTestingMatrix}
 \title{rcTestingMatrix}
 \usage{
-rcTestingMatrix(x, masks, rcb, patchRadius = 3, nsamples = 1000, seeds)
+rcTestingMatrix(x, masks, rcb, patchRadius = 3, meanCenter = FALSE,
+  nsamples = 1000, seeds)
 }
 \arguments{
 \item{x}{input filenames or image list defining one testing modality}
@@ -14,6 +15,8 @@ rcTestingMatrix(x, masks, rcb, patchRadius = 3, nsamples = 1000, seeds)
 \item{rcb}{input image basis from \code{\link{rcBasis}}}
 
 \item{patchRadius}{patch radius, integer value}
+
+\item{meanCenter}{boolean}
 
 \item{nsamples}{number of samples per image}
 
