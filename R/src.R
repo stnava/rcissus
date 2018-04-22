@@ -243,14 +243,22 @@ rcTrain <- function( y,
   }
   if ( mdlMethod == 'kerasdnn'  ) {
     myact = 'selu'
-    dropRate = 0.01
+    dropRate = 0.1
     mod <- keras::keras_model_sequential() %>%
-      keras::layer_dense( units = hidden[1], activation = myact,
-        input_shape = ncol( trainingDf ), kernel_initializer = keras::initializer_random_normal() )  %>%
-        keras::layer_dropout(rate = dropRate ) # %>% keras::layer_batch_normalization()
+      keras::layer_dense(
+        units = hidden[1],
+        activation = myact,
+        input_shape = ncol( trainingDf ),
+        kernel_initializer = keras::initializer_random_normal(),
+        activity_regularizer = keras::regularizer_l1_l2(l1 = 0.01, l2 = 0.01) )  %>%
+        keras::layer_dropout(rate = dropRate ) #  %>% keras::layer_batch_normalization()
     for ( k in 2:length( hidden ) ) {
-      mod <- keras::layer_dense( mod, units = hidden[k], activation = myact,
-        input_shape = hidden[k-1] ) %>% keras::layer_dropout(rate = dropRate ) #  %>%  keras::layer_batch_normalization()
+      mod <- keras::layer_dense( mod,
+        units = hidden[k],
+        activation = myact,
+        input_shape = hidden[k-1],
+        activity_regularizer = keras::regularizer_l1_l2(l1 = 0.01, l2 = 0.01) ) %>%
+        keras::layer_dropout(rate = dropRate )  #  %>%  keras::layer_batch_normalization()
       }
     if ( classification ) {
       losswmx = max( table( y ) )

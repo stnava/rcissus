@@ -12,30 +12,53 @@ vignette: >
 
 ```{r global options, include=FALSE}
 library( rcissus )
+runk = FALSE # controls whether we actually train the models and report results
 ```
 
 
 # RCISSUS
 
-After Narcissus, who sought his reflection.
+> After Narcissus, who sought his reflection.
 
-A fast approach to patch-based deep learning segmentation or image translation
-(mapping intensities between imaging modalities).
+## Background and motivation
 
-In examples below, the epochs are limited to allow for the examples to run quickly.
-One should increase the epochs to get better results.
+Rcissus provides fast eigenpatch-based deep learning.  Rcissus, as a package, 
+is valuable for either segmentation or image translation (mapping intensities 
+between imaging modalities). However, the framework is extensible to many possible 
+applications beyond what is covered here.
+
+Rcissus uses an eigenvector representation of image patches in order to allow
+rapid and generalizable training from small $n$ datasets.  The representation is
+based on [RIPMMARC](https://www.ncbi.nlm.nih.gov/pubmed/25449745) and [RIPMMARC-POP](https://ww5.aievolution.com/hbm1701/index.cfm?do=abs.viewAbs&abs=2175).
+The core idea is to use patch-based dimensionality reduction 
+( e.g.  [@Dhillon2014; @Avants2014; @Kandel2015] ) to simplify the image 
+representation and avoid the need for convolutional networks.  Each image patch 
+is compressed to a *k-dimensional basis representation.*
+
+With this strategy, the model training instances -- and their size -- are determined by the 
+number of patches and the size of the basis, not the
+number of image examples.  This makes the approach computationally fast, 
+memory efficient and relevant to much smaller datasets,
+potentially reducing the need for augmentation and high-performance GPUs. These
+models run fairly efficiently on CPU architecture. Information scale is controlled 
+by both the patch size and the number of eigenvectors used for the patch-based 
+representation.
+
+In examples below, the epochs are limited to allow quick building. One should increase the epochs to get better results. The keras-based models are much more flexible than those provided by h2o and will likely serve as the foundation for further development.
+
 
 # Regression
 
-An example predicting raw intensity from gradient and laplacian images.
+An example predicting raw intensity from gradient and laplacian images.  The examples, 
+here, are 2D but should work in 3D with identical code.
 
-```{r regression}
+```{r regression,eval=FALSE}
 if ( ! exists( "mth" ) ) {
   mth = 'kerasdnn' # may require more tuning than h2o but can yield better results
   mth = 'h2o'
   }
-nBases = 5
-nEpochs = 150
+nBases = 6
+nEpochs = 25
 scaleData = 10000
 # step 1 - collect data
 library( rcissus )
@@ -48,21 +71,25 @@ popGR = list( )  # gradient
 popLA = list( )  # laplacian
 masks = list( )  # sample masks
 nsam = 5000 # samples
-myPR = 3
+myPR = 4
 mc = FALSE
+################################### train features below
 for ( i in 1:length( popfns ) ) {
   popGT[[ i ]] = antsImageRead( getANTsRData( popfns[ i ] ) )
   popGR[[ i ]] = iMath( popGT[[ i ]], "Grad", 1 )
   popLA[[ i ]] = iMath( popGT[[ i ]], "Laplacian", 1 )
   masks[[ i ]] = randomMask( thresholdImage( popGT[[ i ]], 1 , 255  ) , nsam )
   }
+################################### critical step - build the basis set from both features
 trnBas = rcBasis( lappend( popGR, popLA  ), patchRadius = myPR, meanCenter = mc )
 trnBas$basisMat = trnBas$basisMat[ 1:nBases,  ] # select basis vectors
 myseeds = c( 1:length( popGT ) )
-trnMat1 = rcTrainingMatrix( popGT, popGR, masks, trnBas, seeds = myseeds, patchRadius = myPR, meanCenter = mc   )
-trnMat2 = rcTrainingMatrix( popGT, popLA, masks, trnBas, seeds = myseeds, patchRadius = myPR, meanCenter = mc   )
-print( table( trnMat2$y==trnMat1$y ) )
-
+################################### project features to the basis
+trnMat1 = rcTrainingMatrix( popGT, popGR, masks, trnBas, seeds = myseeds, 
+  patchRadius = myPR, meanCenter = mc   )
+trnMat2 = rcTrainingMatrix( popGT, popLA, masks, trnBas, seeds = myseeds, 
+  patchRadius = myPR, meanCenter = mc   )
+################################### test features below
 popGTtest = list( )  # ground truth
 popGRtest = list( )  # gradient
 popLAtest = list( )  # laplacian
@@ -77,30 +104,36 @@ testMat1 = rcTestingMatrix( popGRtest, maskstest, trnBas, seeds = 1, patchRadius
 testMat2 = rcTestingMatrix( popLAtest, maskstest, trnBas, seeds = 1, patchRadius = myPR, meanCenter = mc  )
 
 
+################################### train/test below
 traindf = data.frame( trnMat1$x, trnMat2$x, trnMat1$position ) / 100
 testdf = data.frame( testMat1$x, testMat2$x, testMat1$position ) / 100
-# if h2o works on your machine, use deep learning
 trn = rcTrain( trnMat1$y, traindf, mdlMethod = mth, epochs = nEpochs )
 prd = rcPredict( trn, testdf, mdlMethod = mth )
 mm = makeImage( maskstest[[1]], as.numeric( prd[,1] ) )
-plot( mm )
+invisible( plot( mm ) )
+```
 
+### Ground truth: regression
+
+```{r regGT,eval=FALSE}
+invisible( plot( popGTtest[[ 1 ]]  ) )
 ```
 
 # Segmentation
 
-The same approach can be used for segmentation.
+The same approach can be used for segmentation.  We simply switch the featues and, 
+internally, the cost functions and optimizers.
 
-```{r segmentation,eval=TRUE}
+Note that the results - particularly for keras - are impacted 
+by how one scales the feature matrix.
+
+```{r segmentation,eval=FALSE}
 # step 1 - collect data
-nBases = 5
 # below, we use image lists but one can alternatively replaces lists
 # with vectors of filenames - just do so consistently
 popGT = list( )  # ground truth
 popGR = list( )  # gradient
 masks = list( )  # sample masks
-nsam = 5000 # samples
-myPR = 4
 for ( i in 1:length( popfns ) ) {
   popGT[[ i ]] = antsImageRead( getANTsRData( popfns[ i ] ) )
   popGR[[ i ]] = thresholdImage( popGT[[ i ]], "Otsu", 3 )
@@ -131,23 +164,31 @@ trn = rcTrain( trnMat1$y, traindf, classification = TRUE, mdlMethod = mth, epoch
 prd = rcPredict( trn, testdf, classification = TRUE, mdlMethod = mth )
 prdnumerics = as.numeric(prd$predict) - min( as.numeric(prd$predict) )
 mm = makeImage( maskstest[[1]], prdnumerics  )
-plot( popGTtest[[ 1 ]], mm, window.overay = range( mm ), alpha = 0.6 )
+invisible( plot( popGTtest[[ 1 ]], mm, window.overay = range( mm ), alpha = 0.6 ) )
 sel = maskstest[[ 1 ]] == 1
 gtvals = popGRtest[[ 1 ]][ sel ]
-print( table( gtvals == prdnumerics  )  )
-plot( popGTtest[[ 1 ]], popGRtest[[ 1 ]], window.overay = range( mm ), alpha = 0.6 )
+pander::set.caption("Ground truth / segmentation agreement")
+pander::pander( table( gtvals == prdnumerics  )  )
 mm = makeImage( maskstest[[1]], prd[ , "class_2" ]  )
-plot( mm  )
+invisible( plot( mm  ) )
 ```
 
+### Ground truth: segmentation
 
-# Further optimizations
+```{r segGT,eval=FALSE}
+invisible( plot( popGTtest[[ 1 ]], popGRtest[[ 1 ]], window.overay = range( mm ), alpha = 0.6 ) )
+```
 
-Note: one may want to customize the deep learning components used here, which
-are simply the defaults provided in h2o.  One can inspect the code in order to
+### Further optimizations
+
+One may want to customize the deep learning components used here, which
+are simply the defaults provided in h2o and minimal customization of keras.  
+One can inspect the code in order to
 get started on this, as well as the h2o documentation.  In order to optimize
 performance for a specific problem, one will need to define a validation objective
 and take advantage of the many parameter search strategies available.
+
+Please open issues at [the rcissus site](https://github.com/stnava/rcissus/issues) to discuss concerns, propose new methods, etc.
 
 
 
