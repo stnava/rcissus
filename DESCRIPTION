@@ -20,5 +20,8 @@ Depends:
     ANTsR
 Imports:
     ANTsRCore,
-    h2o
+    h2o,
+    magrittr
+Suggests:
+    keras
 RoxygenNote: 6.0.1

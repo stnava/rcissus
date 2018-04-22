@@ -4,7 +4,7 @@
 \alias{rcPredict}
 \title{rcPredict}
 \usage{
-rcPredict(mdl, testingDf, classification = FALSE)
+rcPredict(mdl, testingDf, classification = FALSE, mdlMethod = "h2o")
 }
 \arguments{
 \item{mdl}{input trained model}
@@ -12,6 +12,8 @@ rcPredict(mdl, testingDf, classification = FALSE)
 \item{testingDf}{input testing data}
 
 \item{classification}{boolean}
+
+\item{mdlMethod}{string either lm, h2o or kerasdnn}
 }
 \value{
 prediction is output

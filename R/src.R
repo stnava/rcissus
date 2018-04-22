@@ -25,6 +25,7 @@
 #' @importFrom ANTsRCore usePkg
 #' @importFrom ANTsRCore randomMask
 #' @importFrom stats predict
+#' @importFrom magrittr %>%
 #' @import methods
 #' @import h2o
 rcBasis <- function( x, patchRadius = 3, meanCenter = FALSE  ) {
@@ -201,6 +202,7 @@ rcTestingMatrix <- function( x, masks, rcb, patchRadius = 3, meanCenter = FALSE,
 #' @param trainingDf input training data
 #' @param hidden Hidden layer sizes (e.g. \code{c(100,100)}). Defaults to \code{c(200,200)}.
 #' @param classification boolean
+#' @param mdlMethod string either lm, h2o or kerasdnn
 #' @param epochs number of epochs (integer) over which to train
 #' @param max_mem sets maximum allowable memory for h2o deep learning
 #' @return model is output
@@ -209,16 +211,23 @@ rcTestingMatrix <- function( x, masks, rcb, patchRadius = 3, meanCenter = FALSE,
 #' @seealso \code{\link[ANTsRCore]{ripmmarcPop}} \url{https://antsx.github.io/ANTsRCore/reference/ripmmarcPop.html}
 #'
 #' @export rcTrain
-rcTrain <- function( y, trainingDf, hidden = c( 200, 200 ),
+rcTrain <- function( y,
+  trainingDf,
+  hidden = c( 200, 200 ),
   classification = FALSE,
+  mdlMethod = 'h2o',
 #  nfolds = 5,
-  epochs = 200, max_mem = "100G" ) {
-  trainingDf$y = y
-  if ( classification ) trainingDf$y = factor( paste0( "class_", as.character( y ) ) )
-  if ( !ANTsRCore::usePkg("h2o") ) {
+  epochs = 200,
+  max_mem = "100G" ) {
+  if ( mdlMethod == 'lm' ) {
+    trainingDf$y = y
+    if ( classification ) trainingDf$y = factor( paste0( "class_", as.character( y ) ) )
     mdl = lm( y ~ . , data = trainingDf )
     return( mdl )
-  } else {
+  }
+  if ( mdlMethod == 'h2o' ) {
+    trainingDf$y = y
+    if ( classification ) trainingDf$y = factor( paste0( "class_", as.character( y ) ) )
     localH2O <- h2o::h2o.init( nthreads = -1 , max_mem_size = max_mem ) # all cores
     h2o::h2o.init()
     tempath = tempfile( pattern = "h2ofile", tmpdir = tempdir(), fileext = ".csv")
@@ -231,6 +240,32 @@ rcTrain <- function( y, trainingDf, hidden = c( 200, 200 ),
       epochs = epochs )
     return( mdl )
   }
+  if ( mdlMethod == 'kerasdnn' & ANTsRCore::usePkg( "keras" ) ) {
+    mod <- keras::keras_model_sequential() %>%
+      keras::layer_dense( units = hidden[1], activation = 'relu',
+        input_shape = ncol( trainingDf ) )
+    for ( k in 2:length( hidden ) ) {
+      mod <- keras::layer_dense( mod, units = hidden[k], activation = 'relu',
+        input_shape = hidden[k-1] )
+      }
+    if ( classification ) {
+      mod <- keras::layer_dense( mod, units = ncol( y ), activation = 'softmax' ) %>%
+       keras::compile( loss = 'categorical_crossentropy',
+         optimizer = keras::optimizer_rmsprop(), metrics = c('accuracy') )
+      }
+    if ( ! classification ) {
+      mod <- keras::layer_dense( mod, units = ncol( y )  ) %>%
+      keras::compile( loss = 'mean_squared_error',
+        optimizer = keras::optimizer_rmsprop() )
+      }
+    # now compile
+    btch = round( nrow( trainingDf ) / 10 )
+    keras::fit( mod,
+      data.matrix( trainingDf ), data.matrix( y ), # batch = btch,
+        epochs = epochs, verbose = 1, validation_split = 0.1 )
+    return( mod )
+  }
+  return( NA )
 }
 
 
@@ -243,15 +278,31 @@ rcTrain <- function( y, trainingDf, hidden = c( 200, 200 ),
 #' @param mdl input trained model
 #' @param testingDf input testing data
 #' @param classification boolean
+#' @param mdlMethod string either lm, h2o or kerasdnn
 #' @return prediction is output
 #' @author Avants BB
 #' @importFrom stats lm
 #'
 #' @export rcPredict
-rcPredict <- function( mdl, testingDf, classification = FALSE ) {
-  if ( !ANTsRCore::usePkg("h2o") ) {
-    return( predict( mdl ) )
-  } else {
+rcPredict <- function( mdl,
+  testingDf,
+  classification = FALSE,
+  mdlMethod = 'h2o' ) {
+  if ( mdlMethod == 'lm' ) {
+    return( predict( mdl, newdata = testingDf ) )
+    }
+  if ( mdlMethod == 'kerasdnn' ) {
+    if ( classification ) {
+      outdf = keras::predict_classes( mdl, x = data.matrix( testingDf ) )
+      print( dim( outdf ) )
+      return( outdf )
+    }
+    if ( !classification ) {
+      outdf = predict( mdl, x = data.matrix( testingDf ) )
+      return( outdf )
+    }
+  }
+  if ( mdlMethod == 'h2o' ) {
     tempath = tempfile( pattern = "h2otestfile", tmpdir = tempdir(), fileext = ".csv")
     write.csv( testingDf, tempath, row.names = FALSE )
     h2otest <- h2o.importFile( tempath )
@@ -262,4 +313,5 @@ rcPredict <- function( mdl, testingDf, classification = FALSE ) {
     }
     return( outdf )
   }
+  return( NA )
 }

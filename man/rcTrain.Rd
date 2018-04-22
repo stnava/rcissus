@@ -5,7 +5,7 @@
 \title{rcTrain}
 \usage{
 rcTrain(y, trainingDf, hidden = c(200, 200), classification = FALSE,
-  epochs = 200, max_mem = "100G")
+  mdlMethod = "h2o", epochs = 200, max_mem = "100G")
 }
 \arguments{
 \item{y}{outcome vector}
@@ -15,6 +15,8 @@ rcTrain(y, trainingDf, hidden = c(200, 200), classification = FALSE,
 \item{hidden}{Hidden layer sizes (e.g. \code{c(100,100)}). Defaults to \code{c(200,200)}.}
 
 \item{classification}{boolean}
+
+\item{mdlMethod}{string either lm, h2o or kerasdnn}
 
 \item{epochs}{number of epochs (integer) over which to train}
 
