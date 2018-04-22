@@ -85,7 +85,7 @@ for ( i in 1:length( popfns ) ) {
   masks[[ i ]] = randomMask( thresholdImage( popGT[[ i ]], 1, 255  ) , nsam )
   }
 trnBas = rcBasis( popGT, patchRadius = myPR )
-trnBas$basisMat = trnBas$basisMat[ 1:24,  ] # select 15 basis vectors
+trnBas$basisMat = trnBas$basisMat[ 1:10,  ] # select 15 basis vectors
 myseeds = c( 1:length( popGT ) )
 trnMat1 = rcTrainingMatrix( popGR, popGT, masks, trnBas, seeds = myseeds, patchRadius = myPR  )
 
