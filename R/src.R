@@ -25,6 +25,7 @@
 #' @importFrom ANTsRCore usePkg
 #' @importFrom ANTsRCore randomMask
 #' @importFrom stats predict
+#' @importFrom knitr knit
 #' @importFrom magrittr %>%
 #' @import methods
 #' @import h2o
@@ -240,18 +241,26 @@ rcTrain <- function( y,
       epochs = epochs )
     return( mdl )
   }
-  if ( mdlMethod == 'kerasdnn' & ANTsRCore::usePkg( "keras" ) ) {
+  if ( mdlMethod == 'kerasdnn'  ) {
+    myact = 'linear'
+    myact = 'selu'
     mod <- keras::keras_model_sequential() %>%
-      keras::layer_dense( units = hidden[1], activation = 'relu',
-        input_shape = ncol( trainingDf ) )
+      keras::layer_dense( units = hidden[1], activation = myact,
+        input_shape = ncol( trainingDf ), kernel_initializer = keras::initializer_random_normal() )  %>%
+        keras::layer_dropout(rate = 0.1 )
     for ( k in 2:length( hidden ) ) {
-      mod <- keras::layer_dense( mod, units = hidden[k], activation = 'relu',
-        input_shape = hidden[k-1] )
+      mod <- keras::layer_dense( mod, units = hidden[k], activation = myact,
+        input_shape = hidden[k-1] ) %>% keras::layer_dropout(rate = 0.1 )
       }
     if ( classification ) {
-      mod <- keras::layer_dense( mod, units = ncol( y ), activation = 'softmax' ) %>%
-       keras::compile( loss = 'categorical_crossentropy',
-         optimizer = keras::optimizer_rmsprop(), metrics = c('accuracy') )
+      losswmx = max( table( y ) )
+      losswtbl = ( as.numeric( table(y )) )
+      lossw = ( losswtbl / losswmx )^(-1)
+      lossw = list( lossw / sum( lossw ) )
+      y = keras::to_categorical( y )
+      mod <- keras::layer_dense( mod, units = ncol( y ), activation = 'softmax' )
+      keras::compile( mod, loss = 'categorical_crossentropy', loss_weights = lossw,
+         optimizer = keras::optimizer_adamax()  )
       }
     if ( ! classification ) {
       mod <- keras::layer_dense( mod, units = ncol( y )  ) %>%
@@ -262,7 +271,7 @@ rcTrain <- function( y,
     btch = round( nrow( trainingDf ) / 10 )
     keras::fit( mod,
       data.matrix( trainingDf ), data.matrix( y ), # batch = btch,
-        epochs = epochs, verbose = 1, validation_split = 0.1 )
+        epochs = epochs, verbose = 1, validation_split = 0.01 )
     return( mod )
   }
   return( NA )
@@ -293,8 +302,10 @@ rcPredict <- function( mdl,
     }
   if ( mdlMethod == 'kerasdnn' ) {
     if ( classification ) {
-      outdf = keras::predict_classes( mdl, x = data.matrix( testingDf ) )
-      print( dim( outdf ) )
+      mypred = keras::predict_classes( mdl, x = data.matrix( testingDf ) )
+      myprobs = keras::predict_proba( mdl, x = data.matrix( testingDf ) )
+      outdf = data.frame( cbind( mypred, myprobs ) )
+      colnames( outdf ) = c( "predict", paste0( "class_", 0:(ncol(myprobs)-1) ) )
       return( outdf )
     }
     if ( !classification ) {
@@ -305,11 +316,11 @@ rcPredict <- function( mdl,
   if ( mdlMethod == 'h2o' ) {
     tempath = tempfile( pattern = "h2otestfile", tmpdir = tempdir(), fileext = ".csv")
     write.csv( testingDf, tempath, row.names = FALSE )
-    h2otest <- h2o.importFile( tempath )
+    h2otest <- h2o::h2o.importFile( tempath )
     if ( classification ) {
-      outdf = as.data.frame( h2o.predict( mdl, h2otest ) )
+      outdf = as.data.frame( h2o::h2o.predict( mdl, h2otest ) )
     } else {
-      outdf = as.data.frame( h2o.predict( mdl, h2otest )[,1] )
+      outdf = as.data.frame( h2o::h2o.predict( mdl, h2otest )[,1] )
     }
     return( outdf )
   }
