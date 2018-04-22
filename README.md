@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/stnava/rcissus.png?branch=master)](https://travis-ci.org/stnava/rcissus)
+
 # rcissus
 
 Rcissus provides a fast approach to patch-based deep learning segmentation or
