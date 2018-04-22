@@ -22,6 +22,9 @@ After Narcissus, who sought his reflection.
 A fast approach to patch-based deep learning segmentation or image translation
 (mapping intensities between imaging modalities).
 
+In examples below, the epochs are limited to allow for the examples to run quickly.
+One should increase the epochs to get better results.
+
 # Regression
 
 An example predicting raw intensity from gradient and laplacian images.
