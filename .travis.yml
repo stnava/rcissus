@@ -39,10 +39,6 @@ before_install:
   - echo "CXX1XSTD=${CXX1XSTD}, CXX11=${CXX11}"
   - clang_cxx
   - export cmake_version="3.4"
-  - cmake --version
-  - x=`cmake_setup`; echo "${x}"; eval ${x};
-  - cmake --version
-  - ./cleanup
   - export PACKAGE_NAME=`package_name`
   # - export PATH=$HOME/bin/:$PATH;
   - echo $PATH ;
