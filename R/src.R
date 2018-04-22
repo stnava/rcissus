@@ -242,15 +242,15 @@ rcTrain <- function( y,
     return( mdl )
   }
   if ( mdlMethod == 'kerasdnn'  ) {
-    myact = 'linear'
     myact = 'selu'
+    dropRate = 0.01
     mod <- keras::keras_model_sequential() %>%
       keras::layer_dense( units = hidden[1], activation = myact,
         input_shape = ncol( trainingDf ), kernel_initializer = keras::initializer_random_normal() )  %>%
-        keras::layer_dropout(rate = 0.1 )
+        keras::layer_dropout(rate = dropRate ) # %>% keras::layer_batch_normalization()
     for ( k in 2:length( hidden ) ) {
       mod <- keras::layer_dense( mod, units = hidden[k], activation = myact,
-        input_shape = hidden[k-1] ) %>% keras::layer_dropout(rate = 0.1 )
+        input_shape = hidden[k-1] ) %>% keras::layer_dropout(rate = dropRate ) #  %>%  keras::layer_batch_normalization()
       }
     if ( classification ) {
       losswmx = max( table( y ) )
@@ -259,13 +259,13 @@ rcTrain <- function( y,
       lossw = list( lossw / sum( lossw ) )
       y = keras::to_categorical( y )
       mod <- keras::layer_dense( mod, units = ncol( y ), activation = 'softmax' )
-      keras::compile( mod, loss = 'categorical_crossentropy', loss_weights = lossw,
-         optimizer = keras::optimizer_adamax()  )
+      keras::compile( mod, loss = 'categorical_crossentropy', # loss_weights = lossw,
+         optimizer = keras::optimizer_adam() )
       }
     if ( ! classification ) {
       mod <- keras::layer_dense( mod, units = ncol( y )  ) %>%
       keras::compile( loss = 'mean_squared_error',
-        optimizer = keras::optimizer_rmsprop() )
+        optimizer = keras::optimizer_adam() )
       }
     # now compile
     btch = round( nrow( trainingDf ) / 10 )

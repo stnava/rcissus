@@ -16,12 +16,12 @@ License: Apache License (>=2.0)
 LazyLoad: yes
 Depends:
     R (>= 2.10),
-    knitr,
     methods,
     ANTsR
 Imports:
     ANTsRCore,
     h2o,
+    knitr,
     magrittr
 Suggests:
     keras

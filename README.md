@@ -7,12 +7,13 @@ fast approach to patch-based deep learning segmentation or image translation
 devtools::install_github("stnava/rcissus")
 ```
 
-an example predicting raw intensity from gradient and laplacian images
+an example predicting raw intensity from gradient and laplacian images.  The
+`rcissus` vignette may be a better place to start than here.
 
 ```
-# set up global method = default is h2o
-mth = 'kerasdnn' # only currently works for regression
+mth = 'kerasdnn' # may require more tuning than h2o but can yield better results
 mth = 'h2o'
+nBases = 5
 # step 1 - collect data
 library( rcissus )
 popfns = getANTsRData('show')[1:5]
@@ -24,7 +25,7 @@ popGR = list( )  # gradient
 popLA = list( )  # laplacian
 masks = list( )  # sample masks
 nsam = 5000 # samples
-myPR = 4
+myPR = 3
 mc = FALSE
 for ( i in 1:length( popfns ) ) {
   popGT[[ i ]] = antsImageRead( getANTsRData( popfns[ i ] ) )
@@ -33,14 +34,12 @@ for ( i in 1:length( popfns ) ) {
   masks[[ i ]] = randomMask( thresholdImage( popGT[[ i ]], 1 , 255  ) , nsam )
   }
 trnBas = rcBasis( lappend( popGR, popLA  ), patchRadius = myPR, meanCenter = mc )
-trnBas$basisMat = trnBas$basisMat[ 1:20,  ] # select 15 basis vectors
+trnBas$basisMat = trnBas$basisMat[ 1:nBases,  ] # select basis vectors
 myseeds = c( 1:length( popGT ) )
 trnMat1 = rcTrainingMatrix( popGT, popGR, masks, trnBas, seeds = myseeds, patchRadius = myPR, meanCenter = mc   )
 trnMat2 = rcTrainingMatrix( popGT, popLA, masks, trnBas, seeds = myseeds, patchRadius = myPR, meanCenter = mc   )
-print( table( trnMat2$y==trnMat1$y ) ) # should be equivalent
+print( table( trnMat2$y==trnMat1$y ) )
 
-
-# step 2 - build similar data for prediction - but use a dense mask
 popGTtest = list( )  # ground truth
 popGRtest = list( )  # gradient
 popLAtest = list( )  # laplacian
@@ -54,24 +53,21 @@ for ( i in 1:length( testfn ) ) {
 testMat1 = rcTestingMatrix( popGRtest, maskstest, trnBas, seeds = 1, patchRadius = myPR, meanCenter = mc  )
 testMat2 = rcTestingMatrix( popLAtest, maskstest, trnBas, seeds = 1, patchRadius = myPR, meanCenter = mc  )
 
-# step 3 - now implement the training and testing
-traindf = data.frame( trnMat1$x, trnMat2$x, trnMat1$position )
-testdf = data.frame( testMat1$x, testMat2$x, testMat1$position )
+
+traindf = data.frame( trnMat1$x, trnMat2$x, trnMat1$position ) / 1000
+testdf = data.frame( testMat1$x, testMat2$x, testMat1$position ) / 1000
 # if h2o works on your machine, use deep learning
-trn = rcTrain( trnMat1$y, traindf, mdlMethod=mth , epochs = 250 )
-prd = rcPredict( trn, testdf, mdlMethod=mth )
+trn = rcTrain( trnMat1$y, traindf, mdlMethod = mth, epochs = 100 )
+prd = rcPredict( trn, testdf, mdlMethod = mth )
 mm = makeImage( maskstest[[1]], as.numeric( prd[,1] ) )
 plot( mm )
-##########
+
 ```
 
 The same approach can be used for segmentation.
 
 ```
 # step 1 - collect data
-library( rcissus )
-popfns = getANTsRData('show')[1:5]
-testfn = getANTsRData('show')[6]
 # below, we use image lists but one can alternatively replaces lists
 # with vectors of filenames - just do so consistently
 popGT = list( )  # ground truth
@@ -85,7 +81,7 @@ for ( i in 1:length( popfns ) ) {
   masks[[ i ]] = randomMask( thresholdImage( popGT[[ i ]], 1, 255  ) , nsam )
   }
 trnBas = rcBasis( popGT, patchRadius = myPR )
-trnBas$basisMat = trnBas$basisMat[ 1:10,  ] # select 15 basis vectors
+trnBas$basisMat = trnBas$basisMat[ 1:12,  ] # select 15 basis vectors
 myseeds = c( 1:length( popGT ) )
 trnMat1 = rcTrainingMatrix( popGR, popGT, masks, trnBas, seeds = myseeds, patchRadius = myPR  )
 
@@ -101,17 +97,19 @@ for ( i in 1:length( testfn ) ) {
 testMat1 = rcTestingMatrix( popGTtest, maskstest, trnBas, seeds = 1, patchRadius = myPR )
 
 # step 3 - now implement the training and testing
-traindf = data.frame( trnMat1$x, position=trnMat1$position )
-testdf = data.frame( testMat1$x, position=testMat1$position )
+# - note that we scale the data by trivial means
+traindf = ( data.frame( trnMat1$x, position=trnMat1$position ) ) / 10000
+testdf = ( data.frame( testMat1$x, position=testMat1$position ) ) / 10000
 # if h2o works on your machine, use deep learning
-trn = rcTrain( trnMat1$y, traindf, classification = TRUE, mdlMethod=mth, epochs=100 )
+trn = rcTrain( trnMat1$y, traindf, classification = TRUE, mdlMethod=mth, epochs=33 )
 prd = rcPredict( trn, testdf, classification = TRUE, mdlMethod=mth )
-prdnumerics = as.numeric(prd$predict) - min( as.numeric(prd$predict) )
+prdnumerics = as.numeric(prd$predict)  - min( as.numeric(prd$predict) )
 mm = makeImage( maskstest[[1]], prdnumerics  )
 plot( popGTtest[[ 1 ]], mm, window.overay = range( mm ), alpha = 0.6 )
 sel = maskstest[[ 1 ]] == 1
 gtvals = popGRtest[[ 1 ]][ sel ]
 print( table( gtvals == prdnumerics  )  )
+############ the ground truth ############
 plot( popGTtest[[ 1 ]], popGRtest[[ 1 ]], window.overay = range( mm ), alpha = 0.6 )
 mm = makeImage( maskstest[[1]], prd[ , "class_2" ]  )
 plot( mm  )

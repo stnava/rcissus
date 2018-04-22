@@ -30,9 +30,13 @@ One should increase the epochs to get better results.
 An example predicting raw intensity from gradient and laplacian images.
 
 ```{r regression}
-# set up global method = default is h2o
-mth = 'kerasdnn' # only currently works for regression
-mth = 'h2o'
+if ( ! exists( "mth" ) ) {
+  mth = 'kerasdnn' # may require more tuning than h2o but can yield better results
+  mth = 'h2o'
+  }
+nBases = 5
+nEpochs = 150
+scaleData = 10000
 # step 1 - collect data
 library( rcissus )
 popfns = getANTsRData('show')[1:5]
@@ -53,14 +57,12 @@ for ( i in 1:length( popfns ) ) {
   masks[[ i ]] = randomMask( thresholdImage( popGT[[ i ]], 1 , 255  ) , nsam )
   }
 trnBas = rcBasis( lappend( popGR, popLA  ), patchRadius = myPR, meanCenter = mc )
-trnBas$basisMat = trnBas$basisMat[ 1:( ncol(trnBas$basisMat) - 2 ),  ] # select basis vectors
+trnBas$basisMat = trnBas$basisMat[ 1:nBases,  ] # select basis vectors
 myseeds = c( 1:length( popGT ) )
 trnMat1 = rcTrainingMatrix( popGT, popGR, masks, trnBas, seeds = myseeds, patchRadius = myPR, meanCenter = mc   )
 trnMat2 = rcTrainingMatrix( popGT, popLA, masks, trnBas, seeds = myseeds, patchRadius = myPR, meanCenter = mc   )
-print( table( trnMat2$y==trnMat1$y ) ) # should be equivalent
+print( table( trnMat2$y==trnMat1$y ) )
 
-
-# step 2 - build similar data for prediction - but use a dense mask
 popGTtest = list( )  # ground truth
 popGRtest = list( )  # gradient
 popLAtest = list( )  # laplacian
@@ -74,25 +76,24 @@ for ( i in 1:length( testfn ) ) {
 testMat1 = rcTestingMatrix( popGRtest, maskstest, trnBas, seeds = 1, patchRadius = myPR, meanCenter = mc  )
 testMat2 = rcTestingMatrix( popLAtest, maskstest, trnBas, seeds = 1, patchRadius = myPR, meanCenter = mc  )
 
-# step 3 - now implement the training and testing
-traindf = data.frame( trnMat1$x, trnMat2$x, trnMat1$position )
-testdf = data.frame( testMat1$x, testMat2$x, testMat1$position )
+
+traindf = data.frame( trnMat1$x, trnMat2$x, trnMat1$position ) / 100
+testdf = data.frame( testMat1$x, testMat2$x, testMat1$position ) / 100
 # if h2o works on your machine, use deep learning
-trn = rcTrain( trnMat1$y, traindf, mdlMethod = mth, epochs = 10 )
+trn = rcTrain( trnMat1$y, traindf, mdlMethod = mth, epochs = nEpochs )
 prd = rcPredict( trn, testdf, mdlMethod = mth )
 mm = makeImage( maskstest[[1]], as.numeric( prd[,1] ) )
 plot( mm )
+
 ```
 
 # Segmentation
 
 The same approach can be used for segmentation.
 
-```{r segmentation}
+```{r segmentation,eval=TRUE}
 # step 1 - collect data
-library( rcissus )
-popfns = getANTsRData('show')[1:5]
-testfn = getANTsRData('show')[6]
+nBases = 5
 # below, we use image lists but one can alternatively replaces lists
 # with vectors of filenames - just do so consistently
 popGT = list( )  # ground truth
@@ -106,7 +107,7 @@ for ( i in 1:length( popfns ) ) {
   masks[[ i ]] = randomMask( thresholdImage( popGT[[ i ]], 1, 255  ) , nsam )
   }
 trnBas = rcBasis( popGT, patchRadius = myPR )
-trnBas$basisMat = trnBas$basisMat[  1:( ncol(trnBas$basisMat) - 2 ),  ] # select basis vectors
+trnBas$basisMat = trnBas$basisMat[  1:nBases,  ] # select basis vectors
 myseeds = c( 1:length( popGT ) )
 trnMat1 = rcTrainingMatrix( popGR, popGT, masks, trnBas, seeds = myseeds, patchRadius = myPR  )
 
@@ -122,10 +123,11 @@ for ( i in 1:length( testfn ) ) {
 testMat1 = rcTestingMatrix( popGTtest, maskstest, trnBas, seeds = 1, patchRadius = myPR )
 
 # step 3 - now implement the training and testing
-traindf = data.frame( trnMat1$x, position=trnMat1$position )
-testdf = data.frame( testMat1$x, position=testMat1$position )
+traindf = data.frame( trnMat1$x, position=trnMat1$position ) / scaleData
+testdf = data.frame( testMat1$x, position=testMat1$position ) / scaleData
+
 # if h2o works on your machine, use deep learning
-trn = rcTrain( trnMat1$y, traindf, classification = TRUE, mdlMethod = mth, epochs = 10 )
+trn = rcTrain( trnMat1$y, traindf, classification = TRUE, mdlMethod = mth, epochs = nEpochs )
 prd = rcPredict( trn, testdf, classification = TRUE, mdlMethod = mth )
 prdnumerics = as.numeric(prd$predict) - min( as.numeric(prd$predict) )
 mm = makeImage( maskstest[[1]], prdnumerics  )
