@@ -20,5 +20,5 @@ before_install:
   - source travis_helpers.sh
   - rm travis_helpers.sh
   - Rscript -e 'install.packages("h2o")'
-  - gh_binary_install neuroconductor/ITKR neuroconductor/ANTsRCore
+  - gh_binary_install neuroconductor/ITKR neuroconductor/ANTsRCore neuroconductor/ANTsR
   - cat DESCRIPTION
