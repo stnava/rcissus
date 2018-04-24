@@ -15,6 +15,9 @@ r:
   - devel
 
 before_install:
+  - wget -O travis_helpers.sh http://bit.ly/travis_helpers
+  - source travis_helpers.sh
+  - rm travis_helpers.sh
   - export itkrrel=0.4.12.4.nc285
   - export gh_user=neuroconductor
   - export ANTsRCorerel=0.5.0.nc1150
