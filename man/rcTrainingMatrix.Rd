@@ -4,13 +4,13 @@
 \alias{rcTrainingMatrix}
 \title{rcTrainingMatrix}
 \usage{
-rcTrainingMatrix(y, x, masks, rcb, patchRadius = 3, meanCenter = FALSE,
+rcTrainingMatrix(x, y, masks, rcb, patchRadius = 3, meanCenter = FALSE,
   nsamples = 1000, seeds)
 }
 \arguments{
-\item{y}{input filenames or image list defining ground truth}
-
 \item{x}{input filenames or image list defining one training modality}
+
+\item{y}{input filenames or image list defining ground truth}
 
 \item{masks}{input filenames or image list defining training modality masks}
 

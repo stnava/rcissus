@@ -20,5 +20,6 @@ install rcissus via `devtools` in `R`:
 devtools::install_github("stnava/rcissus")
 ```
 
-a good starting point for the package is its [vignette](https://github.com/stnava/rcissus/blob/master/vignettes/rcissus.Rmd)
-which can be viewed [here](https://htmlpreview.github.io/?https://github.com/stnava/rcissus/blob/master/inst/doc/rcissus.html).
+primarily, there are two high level functions: `rcTrainTranslation` and
+`rcTranslate`.  see the [vignette](https://github.com/stnava/rcissus/blob/master/vignettes/rcissus.Rmd)
+for more details: [here](https://htmlpreview.github.io/?https://github.com/stnava/rcissus/blob/master/inst/doc/rcissus.html).

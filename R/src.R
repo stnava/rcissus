@@ -67,8 +67,8 @@ rcBasis <- function( x, patchRadius = 3, meanCenter = FALSE  ) {
 #'
 #' Build a rcissus training matrix
 #'
-#' @param y input filenames or image list defining ground truth
 #' @param x input filenames or image list defining one training modality
+#' @param y input filenames or image list defining ground truth
 #' @param masks input filenames or image list defining training modality masks
 #' @param rcb input image basis from \code{\link{rcBasis}}
 #' @param patchRadius patch radius, integer value
@@ -80,7 +80,7 @@ rcBasis <- function( x, patchRadius = 3, meanCenter = FALSE  ) {
 #' @seealso \code{\link[ANTsRCore]{ripmmarcPop}} \url{https://antsx.github.io/ANTsRCore/reference/ripmmarcPop.html}
 #'
 #' @export rcTrainingMatrix
-rcTrainingMatrix <- function( y, x, masks, rcb, patchRadius = 3,
+rcTrainingMatrix <- function( x, y, masks, rcb, patchRadius = 3,
   meanCenter = FALSE, nsamples = 1000, seeds ) {
   if ( length( x ) < 1 ) stop( "pass in a non-zero length input" )
   if ( length( x ) != length( y ) ) stop( "length of y should equal length of x" )
@@ -304,7 +304,24 @@ rcTrain <- function( y,
 rcPredict <- function( mdl,
   testingDf,
   classification = FALSE,
-  mdlMethod = 'h2o' ) {
+  mdlMethod ) {
+  if ( missing( mdlMethod ) ) {
+    if ( class( mdl )[1] == 'H2ORegressionModel'  ) {
+      mdlMethod = 'h2o'
+      classification = FALSE
+    }
+    if ( class( mdl )[1] == 'H2OMultinomialModel'  ) {
+      mdlMethod = 'h2o'
+      classification = TRUE
+    }
+    if ( class( mdl )[1] == 'keras.models.Sequential'  ) {
+      mdlMethod = 'kerasdnn'
+    }
+    if ( class( mdl )[1] == 'lm'  ) {
+      mdlMethod = 'lm'
+      classification = FALSE
+    }
+  }
   if ( mdlMethod == 'lm' ) {
     return( predict( mdl, newdata = testingDf ) )
     }
@@ -333,4 +350,111 @@ rcPredict <- function( mdl,
     return( outdf )
   }
   return( NA )
+}
+
+
+
+
+
+
+#' rcTrainTranslation
+#'
+#' Training for rcissus translation between image modalities
+#'
+#' @param x input filenames or image list defining source modality
+#' @param y input filenames or image list defining target modality
+#' @param masks input filenames or image list defining source modality masks
+#' @param nBases number of eigenvector bases
+#' @param patchRadius patch radius, integer value
+#' @param meanCenter boolean
+#' @param nsamples number of samples per image
+#' @param seeds random seeds for reproducibility across testing modalities
+#' @param hidden Hidden layer sizes (e.g. \code{c(100,100)}). Defaults to \code{c(200,200)}.
+#' @param classification boolean
+#' @param dataScaling scaling by which to divide input data - results may be sensitive to this value
+#' @param mdlMethod string either lm, h2o or kerasdnn
+#' @param epochs number of epochs (integer) over which to train
+#' @return list containing the image bases and the trained model and other relevant parameters.
+#' @author Avants BB
+#'
+#' @export rcTrainTranslation
+rcTrainTranslation <- function(
+  x,
+  y,
+  masks,
+  nBases = 6,
+  patchRadius = 3,
+  meanCenter = FALSE,
+  nsamples = 1000,
+  seeds,
+  hidden = c( 200, 200 ),
+  classification = FALSE,
+  dataScaling = 1000,
+  mdlMethod = 'h2o',
+  epochs = 10 ) {
+
+
+  ################################### critical step - build the basis set from both features
+  trnBas = rcBasis( x, patchRadius = patchRadius, meanCenter = meanCenter )
+  trnBas$basisMat = trnBas$basisMat[ 1:nBases,  ] # select basis vectors
+  if ( missing( seeds ) )
+    seeds = c( 1:length( x ) )
+  ################################### project features to the basis
+  trnMat1 = rcTrainingMatrix( x, y, masks, trnBas, seeds = seeds,
+    patchRadius = patchRadius, meanCenter = meanCenter   )
+  ################################### train/test below
+  traindf = data.frame( trnMat1$x, trnMat1$position ) / dataScaling
+  trn = rcTrain( trnMat1$y, traindf, mdlMethod = mdlMethod,
+    epochs = epochs, hidden = hidden,
+    classification = classification )
+
+  # out of sample prediction ....
+  dmdl = list(
+      deepNet = trn,
+      meanCenter = meanCenter,
+      patchRadius = patchRadius,
+      basis = trnBas,
+      dataScaling = dataScaling )
+
+  return( dmdl )
+}
+
+
+
+#' rcTranslate
+#'
+#' Rcissus translation between image modalities
+#'
+#' @param x input single image from source modality
+#' @param rcmdl the trained model from \code{rcTrainTranslation}
+#' @param mask optional input single image mask
+#' @param classification boolean
+#' @return the translated image.
+#' @author Avants BB
+#'
+#' @export rcTranslate
+rcTranslate <- function(
+  x,
+  rcmdl,
+  mask,
+  classification = FALSE  ) {
+
+  if ( missing( mask ) ) {
+    mask = getMask( x )
+    }
+
+  basisRepresentation = rcTestingMatrix(
+    list( x ),
+    list( mask ),
+    rcmdl$basis,
+    seeds = 1,
+    patchRadius = rcmdl$patchRadius,
+    meanCenter = rcmdl$meanCenter  )
+
+  ################################### apply model below
+  testdfx = data.frame( basisRepresentation$x, basisRepresentation$position ) / rcmdl$dataScaling
+  prd = rcPredict( rcmdl$deepNet, testdfx, classification = classification )
+  output = matrixToImages( t(data.matrix(prd)), mask )
+  return( output )
+
 }

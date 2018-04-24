@@ -4,7 +4,7 @@
 \alias{rcPredict}
 \title{rcPredict}
 \usage{
-rcPredict(mdl, testingDf, classification = FALSE, mdlMethod = "h2o")
+rcPredict(mdl, testingDf, classification = FALSE, mdlMethod)
 }
 \arguments{
 \item{mdl}{input trained model}
