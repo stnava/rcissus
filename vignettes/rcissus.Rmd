@@ -79,9 +79,9 @@ Use high-level code to run the study's training component.
 
 ```{r reg1train,eval=TRUE}
 # out of sample prediction ....
-nBases = 3
+nBases = 4
 nBasesSeg = 6
-nEpochs = 25
+nEpochs = 125
 hdn = c( 200, 200  ) # depth of network
 dmdl = rcTrainTranslation( popGR, popGT, masks, mdlMethod = mth,
   nBases = nBases, patchRadius = 4, nsamples = nsam,
