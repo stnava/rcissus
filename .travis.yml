@@ -12,7 +12,7 @@ language: r
 cache: packages
 
 r:
-  - release
+  - devel
 
 before_install:
   - export itkrrel=0.4.12.4.nc285
@@ -22,6 +22,8 @@ before_install:
   - export antsrrel=0.7.1.9000.c1151
   - export ants_user=neuroconductor
   - Rscript -e 'install.packages("h2o")'
+  - gh_binary_install neuroconductor/ITKR
+  - gh_binary_install neuroconductor/ANTsRCore
   - wget -O antsr_travis.sh http://bit.ly/antsr_travis_sh
   - chmod +x antsr_travis.sh
   - . ./antsr_travis.sh
