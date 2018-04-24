@@ -18,18 +18,6 @@ before_install:
   - wget -O travis_helpers.sh http://bit.ly/travis_helpers
   - source travis_helpers.sh
   - rm travis_helpers.sh
-  - export itkrrel=0.4.12.4.nc285
-  - export gh_user=neuroconductor
-  - export ANTsRCorerel=0.5.0.nc1150
-  - export reldir=latest
-  - export antsrrel=0.7.1.9000.c1151
-  - export ants_user=neuroconductor
   - Rscript -e 'install.packages("h2o")'
-  - gh_binary_install neuroconductor/ITKR
-  - gh_binary_install neuroconductor/ANTsRCore
-  - wget -O antsr_travis.sh http://bit.ly/antsr_travis_sh
-  - chmod +x antsr_travis.sh
-  - . ./antsr_travis.sh
-  - rm antsr_travis.sh
-#  - Rscript -e 'install_github("stnava/ANTsRCore")'
+  - gh_binary_install neuroconductor/ITKR neuroconductor/ANTsRCore
   - cat DESCRIPTION
