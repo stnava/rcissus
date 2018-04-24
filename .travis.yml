@@ -1,37 +1,30 @@
-language: r
 sudo: false
-cache:
-  - packages
-  - ccache
-warnings_are_errors: true
-bioc_required: false
-cran: http://cran.rstudio.com
-allow_failures:
-  - os: osx
-
 latex: false
-compiler: clang
-osx_image: xcode9
+os:
+  - linux
+  - osx
+compiler:
+  - gcc
+  - clang
 
-env:
-  global:
-  - R_BUILD_ARGS=" --no-build-vignettes --no-manual "
-  - R_CHECK_ARGS=" --timings --as-cran --no-manual"
-  - R_CHECK_TIME="TRUE"
-  - R_CHECK_TESTS="TRUE"
-  - _R_CHECK_TIMINGS_="0"
-  - _R_CHECK_FORCE_SUGGESTS_="0"
-  - BOOTSTRAP_LATEX=1
+language: r
+
+cache: packages
+
+r:
+  - release
 
 before_install:
-  - export itkrrel=0.4.12
-  - export gh_user=stnava
-  - export ANTsRCorerel=0.4.2.1
+  - export itkrrel=0.4.12.4.nc285
+  - export gh_user=neuroconductor
+  - export ANTsRCorerel=0.5.0.nc1150
   - export reldir=latest
-  - export antsrrel=0.6.1
+  - export antsrrel=0.7.1.9000.c1151
+  - export ants_user=neuroconductor
   - Rscript -e 'install.packages("h2o")'
   - wget -O antsr_travis.sh http://bit.ly/antsr_travis_sh
   - chmod +x antsr_travis.sh
   - . ./antsr_travis.sh
   - rm antsr_travis.sh
+#  - Rscript -e 'install_github("stnava/ANTsRCore")'
   - cat DESCRIPTION
