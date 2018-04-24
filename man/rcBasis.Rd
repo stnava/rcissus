@@ -4,7 +4,7 @@
 \alias{rcBasis}
 \title{rcBasis}
 \usage{
-rcBasis(x, patchRadius = 3, meanCenter = FALSE)
+rcBasis(x, patchRadius = 3, meanCenter = FALSE, nsamples = 1000)
 }
 \arguments{
 \item{x}{input filenames or image list}
@@ -12,6 +12,8 @@ rcBasis(x, patchRadius = 3, meanCenter = FALSE)
 \item{patchRadius}{patch radius, integer value}
 
 \item{meanCenter}{boolean}
+
+\item{nsamples}{number of samples}
 }
 \value{
 basis is output

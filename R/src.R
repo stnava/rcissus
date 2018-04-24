@@ -5,6 +5,7 @@
 #' @param x input filenames or image list
 #' @param patchRadius patch radius, integer value
 #' @param meanCenter boolean
+#' @param nsamples number of samples
 #' @return basis is output
 #' @author Avants BB
 #' @seealso \code{\link[ANTsRCore]{ripmmarcPop}} \url{https://antsx.github.io/ANTsRCore/reference/ripmmarcPop.html}
@@ -29,8 +30,8 @@
 #' @importFrom magrittr %>%
 #' @import methods
 #' @import h2o
-rcBasis <- function( x, patchRadius = 3, meanCenter = FALSE  ) {
-  maskType = 'dense'
+rcBasis <- function( x, patchRadius = 3, meanCenter = FALSE, nsamples = 1000  ) {
+  maskType = 'sparse'
   if ( ! ( maskType %in% c("sparse","dense") ) ) stop("pass dense or sparse as maskType" )
   if ( length( x ) < 1 ) stop( "pass in a non-zero length input" )
 
@@ -39,7 +40,6 @@ rcBasis <- function( x, patchRadius = 3, meanCenter = FALSE  ) {
 
   # build a training dataset by sampling each image and binding together
   # the output of the matrices
-  nsam = 1000
   popmasks = list()
   for ( i in 1:length( x ) ) {
     if ( isFilename ) img = ANTsRCore::antsImageRead( x[ i ] ) else img = x[[ i ]]
@@ -47,15 +47,15 @@ rcBasis <- function( x, patchRadius = 3, meanCenter = FALSE  ) {
       popmasks[[ i ]] = ANTsRCore::getMask( img, cleanup = 0  )
     if ( maskType == 'sparse' ) {
       temp = ANTsRCore::getMask( img, cleanup = 0 )
-      popmasks[[ i ]] = ANTsRCore::randomMask( temp, nsam, perLabel = TRUE ) * temp
+      popmasks[[ i ]] = ANTsRCore::randomMask( temp, nsamples, perLabel = TRUE ) * temp
       }
     }
   if ( isFilename ) {
     rp = ANTsRCore::ripmmarcPop( ANTsRCore::imageFileNames2ImageList( x ),
-      popmasks, patchRadius=patchRadius, meanCenter = FALSE, patchSamples=nsam )
+      popmasks, patchRadius=patchRadius, meanCenter = FALSE, patchSamples=nsamples )
     } else {
     rp = ANTsRCore::ripmmarcPop( x,
-      popmasks, patchRadius=patchRadius, meanCenter = FALSE, patchSamples=nsam )
+      popmasks, patchRadius=patchRadius, meanCenter = FALSE, patchSamples=nsamples )
     }
   return( rp )
 }
