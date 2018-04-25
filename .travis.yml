@@ -23,4 +23,26 @@ before_install:
   - Rscript -e 'install.packages("psych")'
   - Rscript -e 'install.packages("RcppEigen")'
   - gh_binary_install stnava/ITKR stnava/ANTsRCore stnava/ANTsR
-  - cat DESCRIPTION
+
+
+jobs:
+  include:
+    - name: "linux"
+      os: linux
+    - name: "OSX"
+      os: osx
+
+after_failure:
+  - cat ${PACKAGE_NAME}.Rcheck/00install.out
+  - cat ${PACKAGE_NAME}.Rcheck/00check.log
+
+after_success:
+  - cat ${PACKAGE_NAME}.Rcheck/00install.out
+  - cat ${PACKAGE_NAME}.Rcheck/00check.log
+
+notifications:
+  email:
+    recipients:
+    - stnava@gmail.com
+    on_success: change
+    on_failure: always
