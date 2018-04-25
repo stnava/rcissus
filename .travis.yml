@@ -1,24 +1,22 @@
-sudo: false
-latex: false
-os:
-  - linux
-  - osx
-compiler:
-  - gcc
-  - clang
-
 language: r
+sudo: false
+cache:
+  - packages
+  - ccache
+warnings_are_errors: true
+bioc_required: false
+cran: http://cran.rstudio.com
+allow_failures:
+  - os: osx
 
-cache: packages
-
-r:
-  - release
-  - devel
+latex: false
+compiler: clang
+osx_image: xcode9
 
 before_install:
   - wget -O travis_helpers.sh http://bit.ly/travis_helpers
   - source travis_helpers.sh
   - rm travis_helpers.sh
   - Rscript -e 'install.packages("h2o")'
-  - gh_binary_install neuroconductor/ITKR neuroconductor/ANTsRCore neuroconductor/ANTsR
+  - gh_binary_install stnava/ITKR stnava/ANTsRCore stnava/ANTsR
   - cat DESCRIPTION
