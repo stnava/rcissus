@@ -18,5 +18,9 @@ before_install:
   - source travis_helpers.sh
   - rm travis_helpers.sh
   - Rscript -e 'install.packages("h2o")'
+  - Rscript -e 'install.packages("rsvd")'
+  - Rscript -e 'install.packages("magic")'
+  - Rscript -e 'install.packages("psych")'
+  - Rscript -e 'install.packages("RcppEigen")'
   - gh_binary_install stnava/ITKR stnava/ANTsRCore stnava/ANTsR
   - cat DESCRIPTION
