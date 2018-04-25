@@ -16,10 +16,10 @@ runk = FALSE # controls whether we actually train the models and report results
 diceOverlap <- function( x,  y ) {
   ulabs = sort( unique( c( unique(x), unique(y) ) ) )
   dicedf = data.frame( labels = ulabs, dice = rep( NA, length( ulabs ) ) )
-  for ( ulab in ulabs ) {
-    denom = sum( x == ulab ) + sum( y == ulab )
-    dd = sum( x == ulab & y == ulab ) * 2
-    dicedf[  ulab, 'dice' ] = dd / denom
+  for ( ct in 1:length(ulabs) ) {
+    denom = sum( x == ulabs[ct] ) + sum( y == ulabs[ct] )
+    dd = sum( x == ulabs[ct] & y == ulabs[ct] ) * 2
+    dicedf[  ct, 'dice' ] = dd / denom
   }
   return( dicedf )
 }
