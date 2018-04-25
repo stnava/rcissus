@@ -13,6 +13,16 @@ vignette: >
 ```{r global options, include=FALSE}
 library( rcissus )
 runk = FALSE # controls whether we actually train the models and report results
+diceOverlap <- function( x,  y ) {
+  ulabs = sort( unique( c( unique(x), unique(y) ) ) )
+  dicedf = data.frame( labels = ulabs, dice = rep( NA, length( ulabs ) ) )
+  for ( ulab in ulabs ) {
+    denom = sum( x == ulab ) + sum( y == ulab )
+    dd = sum( x == ulab & y == ulab ) * 2
+    dicedf[  ulab, 'dice' ] = dd / denom
+  }
+  return( dicedf )
+}
 ```
 
 
@@ -94,7 +104,6 @@ Out of sample prediction.
 oosMask =  getANTsRData( testfn ) %>% antsImageRead(  ) %>% getMask() 
 oos = getANTsRData( testfn ) %>% antsImageRead(  ) %>% iMath("Grad", 1 )
 translatedImages = rcTranslate( x = oos, rcmdl = dmdl, mask = oosMask, classification = FALSE  )
-plot( translatedImages[[ 1 ]] )
 invisible( plot( translatedImages[[ 1 ]] ) )
 
 ```
@@ -198,7 +207,7 @@ dmdl = rcTrainTranslation( popGT, popGR, masks, mdlMethod = mth,
 oosMask =  getANTsRData( testfn ) %>% antsImageRead(  ) %>% getMask() 
 oos = getANTsRData( testfn ) %>% antsImageRead(  )
 mm2 = rcTranslate( x = oos, rcmdl = dmdl, mask = oosMask, classification = TRUE  )
-plot( oos, mm2[[ 1 ]], window.overay = c(0,3), alpha = 0.6 )
+plot( oos, mm2[[ 1 ]], window.overay = c(0,4), alpha = 0.6 )
 plot( mm2[[ 4 ]] ) # GM probability
 
 
@@ -207,10 +216,16 @@ plot( mm2[[ 4 ]] ) # GM probability
 ### Ground truth: segmentation
 
 ```{r segGT,eval=TRUE}
+gtimg = thresholdImage( oos, "Otsu", 3 )
 invisible( 
-  plot( oos, 
-        thresholdImage( oos, "Otsu", 3 ), 
+  plot( oos, gtimg, 
         window.overay = c(0,3), alpha = 0.6 ) )
+```
+
+Dice overlap 
+
+```{r segDice,eval=TRUE}
+pander::pander( diceOverlap( mm2[[ 1 ]],  gtimg ) )
 ```
 
 ### Further optimizations

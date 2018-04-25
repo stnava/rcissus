@@ -242,22 +242,22 @@ rcTrain <- function( y,
     return( mdl )
   }
   if ( mdlMethod == 'kerasdnn'  ) {
-    myact = 'selu'
-    dropRate = 0.1
+    myact = 'relu'
+    dropRate = 0.01
     mod <- keras::keras_model_sequential() %>%
       keras::layer_dense(
         units = hidden[1],
         activation = myact,
         input_shape = ncol( trainingDf ),
-        kernel_initializer = keras::initializer_random_normal(),
-        activity_regularizer = keras::regularizer_l1_l2(l1 = 0.01, l2 = 0.01) )  %>%
+        kernel_initializer = keras::initializer_random_normal() ) %>%
+#        activity_regularizer = keras::regularizer_l1_l2(l1 = 0.01, l2 = 0.01) )  %>%
         keras::layer_dropout(rate = dropRate ) #  %>% keras::layer_batch_normalization()
     for ( k in 2:length( hidden ) ) {
       mod <- keras::layer_dense( mod,
         units = hidden[k],
         activation = myact,
-        input_shape = hidden[k-1],
-        activity_regularizer = keras::regularizer_l1_l2(l1 = 0.01, l2 = 0.01) ) %>%
+        input_shape = hidden[k-1] ) %>%
+#        activity_regularizer = keras::regularizer_l1_l2(l1 = 0.01, l2 = 0.01) ) %>%
         keras::layer_dropout(rate = dropRate )  #  %>%  keras::layer_batch_normalization()
       }
     if ( classification ) {
@@ -279,7 +279,7 @@ rcTrain <- function( y,
     btch = round( nrow( trainingDf ) / 10 )
     keras::fit( mod,
       data.matrix( trainingDf ), data.matrix( y ), # batch = btch,
-        epochs = epochs, verbose = 1, validation_split = 0.01 )
+        epochs = epochs, verbose = 1, validation_split = 0.2 )
     return( mod )
   }
   return( NA )
@@ -404,6 +404,7 @@ rcTrainTranslation <- function(
     patchRadius = patchRadius, meanCenter = meanCenter   )
   ################################### train/test below
   traindf = data.frame( trnMat1$x, trnMat1$position ) / dataScaling
+  traindf = data.frame( trnMat1$x ) / dataScaling
   trn = rcTrain( trnMat1$y, traindf, mdlMethod = mdlMethod,
     epochs = epochs, hidden = hidden,
     classification = classification )
@@ -453,6 +454,7 @@ rcTranslate <- function(
 
   ################################### apply model below
   testdfx = data.frame( basisRepresentation$x, basisRepresentation$position ) / rcmdl$dataScaling
+  testdfx = data.frame( basisRepresentation$x ) / rcmdl$dataScaling
   prd = rcPredict( rcmdl$deepNet, testdfx, classification = classification )
   output = matrixToImages( t(data.matrix(prd)), mask )
   return( output )
