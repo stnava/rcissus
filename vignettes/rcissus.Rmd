@@ -231,6 +231,7 @@ pander::pander( diceOverlap( mm2[[ 1 ]],  gtimg ) )
 Write the model for later
 
 ```{r writing,eval=FALSE}
+# implement this yourself - change variables, etc.
 writeRcissus(basis, patchRadius, meanCenter, dataScaling = 1, deepNet = NA,
     directoryname )
 ```
