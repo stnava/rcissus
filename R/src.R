@@ -532,6 +532,10 @@ if ( !is.na( deepNet ) )
 #' @param directoryname to read
 #' @return rcissus list of objects
 #' @author Avants BB
+#' @importFrom ANTsRCore makeImage
+#' @importFrom utils read.csv
+#' @importFrom keras load_model_hdf5
+#' @importFrom keras load_model_hdf5
 #' @examples
 #' \dontrun{
 #' pop = getANTsRData( "population" ) # list of example images
@@ -543,13 +547,13 @@ if ( !is.na( deepNet ) )
 #' @export readRcissus
 readRcissus <- function( directoryname ) {
 
-temp = readNormalizedPopulationData( directoryname )
-canframe = makeImage( temp$imageMask, temp$imageMat[1,] )
-dataScaling = read.csv( paste0( directoryname, "/dataScaling.csv" ) )
+temp = ANTsR::readNormalizedPopulationData( directoryname )
+canframe = ANTsRCore::makeImage( temp$imageMask, temp$imageMat[1,] )
+dataScaling = utils::read.csv( paste0( directoryname, "/dataScaling.csv" ) )
 deepNet = NA
 h5fn = paste0( directoryname, "/deepNet.h5" )
 if ( file.exists( h5fn  ) )
-  deepNet = load_model_hdf5( h5fn )
+  deepNet = keras::load_model_hdf5( h5fn )
 outbasis = list(
   canonicalFrame = canframe,
   basisMat = temp$imageMat,
