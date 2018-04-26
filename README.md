@@ -36,4 +36,4 @@ for more details: [here](https://htmlpreview.github.io/?https://github.com/stnav
 
 * read / write basis vectors ( library of basis sizes, given radius and problem ).  this will mean we do not need to recompute bases.
 
-* read / write models to allow reuse - not sure possible with h2o
+* read / write models to allow reuse - not sure possible with h2o. see `?save_model_hdf5`

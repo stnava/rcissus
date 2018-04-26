@@ -25,6 +25,8 @@
 #' @importFrom ANTsRCore ripmmarcPop
 #' @importFrom ANTsRCore usePkg
 #' @importFrom ANTsRCore randomMask
+#' @importFrom ANTsR writeNormalizedPopulationData
+#' @importFrom ANTsR readNormalizedPopulationData
 #' @importFrom stats predict
 #' @importFrom knitr knit
 #' @importFrom magrittr %>%
@@ -459,4 +461,103 @@ rcTranslate <- function(
   output = matrixToImages( t(data.matrix(prd)), mask )
   return( output )
 
+}
+
+
+
+
+
+
+
+
+
+
+#' writeRcissus
+#'
+#' Write an rcissus basis set
+#'
+#' @param basis the basis image to write
+#' @param patchRadius the radius associated with the basis
+#' @param meanCenter boolean
+#' @param dataScaling optional scaling value(s)
+#' @param deepNet optional network
+#' @param directoryname for output
+#' @return succeed or fail
+#' @author Avants BB
+#' @examples
+#'
+#' \dontrun{
+#' pop = getANTsRData( "population" ) # list of example images
+#' imgBases = rcBasis( pop )
+#' writeRcissus( imgBases, 3, FALSE, tempfile() )
+#' }
+#'
+#' @export writeRcissus
+writeRcissus <- function(
+  basis,
+  patchRadius,
+  meanCenter,
+  dataScaling = 1,
+  deepNet = NA,
+  directoryname ) {
+
+dd = data.frame(
+  patchRadius = rep( patchRadius, nrow( basis$basisMat ) ),
+  meanCenter =  rep( meanCenter,  nrow( basis$basisMat ) ) )
+mask = basis$canonicalFrame * 0 + 1
+mask[ basis$canonicalFrame == 0 ] = 0
+ANTsR::writeNormalizedPopulationData(
+  dd,
+  basis$basisMat,
+  mask,
+  rep( TRUE, nrow( basis$basisMat ) ),
+  directoryname
+  )
+
+write.csv( dataScaling,
+  paste0( directoryname, "/dataScaling.csv" ), row.names=F )
+h5fn = paste0( directoryname, "/deepNet.h5" )
+if ( !is.na( deepNet ) )
+  keras::save_model_hdf5( deepNet, h5fn )
+
+
+}
+
+
+
+#' readRcissus
+#'
+#' Read an rcissus basis set
+#'
+#' @param directoryname to read
+#' @return rcissus list of objects
+#' @author Avants BB
+#' @examples
+#' \dontrun{
+#' pop = getANTsRData( "population" ) # list of example images
+#' imgBases = rcBasis( pop )
+#' tfn = tempfile()
+#' writeRcissus( imgBases, 3, FALSE, directoryname = tfn )
+#' imgB2 = readRcissus( tfn )
+#' }
+#' @export readRcissus
+readRcissus <- function( directoryname ) {
+
+temp = readNormalizedPopulationData( directoryname )
+canframe = makeImage( temp$imageMask, temp$imageMat[1,] )
+dataScaling = read.csv( paste0( directoryname, "/dataScaling.csv" ) )
+deepNet = NA
+h5fn = paste0( directoryname, "/deepNet.h5" )
+if ( file.exists( h5fn  ) )
+  deepNet = load_model_hdf5( h5fn )
+outbasis = list(
+  canonicalFrame = canframe,
+  basisMat = temp$imageMat,
+  mask = temp$imageMask,
+  patchRadius = temp$demographics$patchRadius[1],
+  meanCenter = temp$demographics$meanCenter[1],
+  deepNet = deepNet,
+  dataScaling = dataScaling
+  )
+return( outbasis )
 }
