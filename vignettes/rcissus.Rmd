@@ -66,7 +66,7 @@ here, are 2D but should work in 3D with identical code.
 
 First, we organize the input training dataset.
 
-```{r regression1,eval=TRUE}
+```{r regression1,eval=FALSE}
 if ( ! exists( "mth" ) ) mth = 'h2o'
 popfns = getANTsRData('show')[1:5]
 testfn = getANTsRData('show')[6]
@@ -87,7 +87,7 @@ for ( i in 1:length( popfns ) ) {
 
 Use high-level code to run the study's training component.
 
-```{r reg1train,eval=TRUE}
+```{r reg1train,eval=FALSE}
 # out of sample prediction ....
 nBases = 4
 nBasesSeg = 6
@@ -100,7 +100,7 @@ dmdl = rcTrainTranslation( popGR, popGT, masks, mdlMethod = mth,
 
 Out of sample prediction.
 
-```{r reg1test,eval=TRUE}
+```{r reg1test,eval=FALSE}
 oosMask =  getANTsRData( testfn ) %>% antsImageRead(  ) %>% getMask()
 oos = getANTsRData( testfn ) %>% antsImageRead(  ) %>% iMath("Grad", 1 )
 translatedImages = rcTranslate( x = oos, rcmdl = dmdl, mask = oosMask, classification = FALSE  )
@@ -115,7 +115,7 @@ invisible( plot( translatedImages[[ 1 ]] ) )
 An example predicting raw intensity from two "modalities": gradient and laplacian images.  
 We have to go deeper into the guts of the method to implement this special case.
 
-```{r regression2mod,eval=TRUE}
+```{r regression2mod,eval=FALSE}
 # step 1 - collect data
 library( rcissus )
 popfns = getANTsRData('show')[1:5]
@@ -173,7 +173,7 @@ invisible( plot( mm ) )
 
 ### Ground truth: regression
 
-```{r regGT,eval=TRUE}
+```{r regGT,eval=FALSE}
 invisible( plot( popGTtest[[ 1 ]]  ) )
 ```
 
@@ -185,7 +185,7 @@ internally, the cost functions and optimizers.
 Note that the results - particularly for keras - are impacted
 by how one scales the feature matrix.
 
-```{r segmentation,eval=TRUE}
+```{r segmentation,eval=FALSE}
 # step 1 - collect data
 # below, we use image lists but one can alternatively replaces lists
 # with vectors of filenames - just do so consistently
@@ -215,7 +215,7 @@ plot( mm2[[ 4 ]] ) # GM probability
 
 ### Ground truth: segmentation
 
-```{r segGT,eval=TRUE}
+```{r segGT,eval=FALSE}
 gtimg = thresholdImage( oos, "Otsu", 3 )
 invisible(
   plot( oos, gtimg,
@@ -224,7 +224,7 @@ invisible(
 
 Dice overlap
 
-```{r segDice,eval=TRUE}
+```{r segDice,eval=FALSE}
 pander::pander( diceOverlap( mm2[[ 1 ]],  gtimg ) )
 ```
 
