@@ -534,8 +534,6 @@ if ( !is.na( deepNet ) )
 #' @author Avants BB
 #' @importFrom ANTsRCore makeImage
 #' @importFrom utils read.csv
-#' @importFrom keras load_model_hdf5
-#' @importFrom keras load_model_hdf5
 #' @examples
 #' \dontrun{
 #' pop = getANTsRData( "population" ) # list of example images
