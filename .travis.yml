@@ -22,8 +22,7 @@ before_install:
   - wget -O travis_helpers.sh http://bit.ly/travis_helpers
   - source travis_helpers.sh
   - rm travis_helpers.sh
-  - export PACKAGE_NAME=`package_name`
-  - echo $PATH ;
+  - export PACKAGE_NAME=rcissus
   - install_deps_no_suggests
   - Rscript -e 'install.packages("h2o")'
   - Rscript -e 'install.packages("rsvd")'
@@ -32,20 +31,6 @@ before_install:
   - Rscript -e 'install.packages("RcppEigen")'
   - gh_binary_install stnava/ITKR stnava/ANTsRCore stnava/ANTsR
   - travis_run_cache
-
-script:
-  - echo $PROJ_DIR
-  - travis_wait 100 R CMD build ${PROJ_DIR} ${R_BUILD_ARGS}
-  - PKG_FILE_NAME=$(ls -1t *.tar.gz | head -n 1)
-  - if [ "$TRAVIS_OS_NAME" == "osx" ];
-      then
-      PKG_FILE_NAME=$(ls -1t *.tgz | head -n  1);
-    fi
-  - ls
-  - if [[ ${#TRAVIS_TAG} -eq 0 ]];
-    then
-      travis_wait 100 R CMD check ${R_CHECK_ARGS} "${PKG_FILE_NAME}" --no-manual --install-args=--build;
-    fi # --as-cran
 
 jobs:
   include:
