@@ -5,7 +5,7 @@
 \title{rcTrain}
 \usage{
 rcTrain(y, trainingDf, hidden = c(200, 200), classification = FALSE,
-  mdlMethod = "h2o", epochs = 200, max_mem = "100G")
+  mdlMethod = "h2o", epochs = 200, batchSize, max_mem = "100G")
 }
 \arguments{
 \item{y}{outcome vector}
@@ -20,9 +20,9 @@ rcTrain(y, trainingDf, hidden = c(200, 200), classification = FALSE,
 
 \item{epochs}{number of epochs (integer) over which to train}
 
-\item{max_mem}{sets maximum allowable memory for h2o deep learning}
-
 \item{batchSize}{for training}
+
+\item{max_mem}{sets maximum allowable memory for h2o deep learning}
 }
 \value{
 model is output

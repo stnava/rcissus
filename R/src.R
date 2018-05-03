@@ -222,6 +222,7 @@ rcTrain <- function( y,
   mdlMethod = 'h2o',
 #  nfolds = 5,
   epochs = 200,
+  batchSize,
   max_mem = "100G" ) {
   if ( missing( batchSize ) ) batchSize = round( nrow( x ) / 10 )
   if ( mdlMethod == 'lm' ) {
