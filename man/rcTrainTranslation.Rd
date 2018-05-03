@@ -6,8 +6,8 @@
 \usage{
 rcTrainTranslation(x, y, masks, nBases = 6, patchRadius = 3,
   meanCenter = FALSE, nsamples = 1000, seeds, hidden = c(200, 200),
-  classification = FALSE, dataScaling = 1000, mdlMethod = "h2o",
-  epochs = 10)
+  classification = FALSE, dataScaling = 1000, batchSize,
+  mdlMethod = "h2o", epochs = 10)
 }
 \arguments{
 \item{x}{input filenames or image list defining source modality}
@@ -31,6 +31,8 @@ rcTrainTranslation(x, y, masks, nBases = 6, patchRadius = 3,
 \item{classification}{boolean}
 
 \item{dataScaling}{scaling by which to divide input data - results may be sensitive to this value}
+
+\item{batchSize}{for training}
 
 \item{mdlMethod}{string either lm, h2o or kerasdnn}
 

@@ -207,6 +207,7 @@ rcTestingMatrix <- function( x, masks, rcb, patchRadius = 3, meanCenter = FALSE,
 #' @param classification boolean
 #' @param mdlMethod string either lm, h2o or kerasdnn
 #' @param epochs number of epochs (integer) over which to train
+#' @param batchSize for training
 #' @param max_mem sets maximum allowable memory for h2o deep learning
 #' @return model is output
 #' @author Avants BB
@@ -222,6 +223,7 @@ rcTrain <- function( y,
 #  nfolds = 5,
   epochs = 200,
   max_mem = "100G" ) {
+  if ( missing( batchSize ) ) batchSize = round( nrow( x ) / 10 )
   if ( mdlMethod == 'lm' ) {
     trainingDf$y = y
     if ( classification ) trainingDf$y = factor( paste0( "class_", as.character( y ) ) )
@@ -278,10 +280,8 @@ rcTrain <- function( y,
         optimizer = keras::optimizer_adam() )
       }
     # now compile
-    btch = round( nrow( trainingDf ) / 10 )
     keras::fit( mod,
-      data.matrix( trainingDf ), data.matrix( y ), # batch = btch,
-        epochs = epochs, verbose = 1, validation_split = 0.2 )
+      data.matrix( trainingDf ), data.matrix( y ), batch = batchSize,        epochs = epochs, verbose = 1, validation_split = 0.2 )
     return( mod )
   }
   return( NA )
@@ -374,6 +374,7 @@ rcPredict <- function( mdl,
 #' @param hidden Hidden layer sizes (e.g. \code{c(100,100)}). Defaults to \code{c(200,200)}.
 #' @param classification boolean
 #' @param dataScaling scaling by which to divide input data - results may be sensitive to this value
+#' @param batchSize for training
 #' @param mdlMethod string either lm, h2o or kerasdnn
 #' @param epochs number of epochs (integer) over which to train
 #' @return list containing the image bases and the trained model and other relevant parameters.
@@ -392,9 +393,11 @@ rcTrainTranslation <- function(
   hidden = c( 200, 200 ),
   classification = FALSE,
   dataScaling = 1000,
+  batchSize,
   mdlMethod = 'h2o',
   epochs = 10 ) {
 
+  if ( missing( batchSize ) ) batchSize = round( nrow( x ) / 10 )
 
   ################################### critical step - build the basis set from both features
   trnBas = rcBasis( x, patchRadius = patchRadius, meanCenter = meanCenter )
@@ -409,7 +412,7 @@ rcTrainTranslation <- function(
   traindf = data.frame( trnMat1$x ) / dataScaling
   trn = rcTrain( trnMat1$y, traindf, mdlMethod = mdlMethod,
     epochs = epochs, hidden = hidden,
-    classification = classification )
+    classification = classification,  batchSize = batchSize )
 
   # out of sample prediction ....
   dmdl = list(

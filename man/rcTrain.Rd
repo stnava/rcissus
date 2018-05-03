@@ -21,6 +21,8 @@ rcTrain(y, trainingDf, hidden = c(200, 200), classification = FALSE,
 \item{epochs}{number of epochs (integer) over which to train}
 
 \item{max_mem}{sets maximum allowable memory for h2o deep learning}
+
+\item{batchSize}{for training}
 }
 \value{
 model is output

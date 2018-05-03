@@ -1,4 +1,7 @@
 language: r
+  - release
+  - devel
+  
 sudo: false
 cache:
   - packages
