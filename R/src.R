@@ -224,7 +224,7 @@ rcTrain <- function( y,
   epochs = 200,
   batchSize,
   max_mem = "100G" ) {
-  if ( missing( batchSize ) ) batchSize = round( nrow( x ) / 10 )
+  if ( missing( batchSize ) ) batchSize = round( nrow( trainingDf ) / 10 )
   if ( mdlMethod == 'lm' ) {
     trainingDf$y = y
     if ( classification ) trainingDf$y = factor( paste0( "class_", as.character( y ) ) )
@@ -398,8 +398,6 @@ rcTrainTranslation <- function(
   mdlMethod = 'h2o',
   epochs = 10 ) {
 
-  if ( missing( batchSize ) ) batchSize = round( nrow( x ) / 10 )
-
   ################################### critical step - build the basis set from both features
   trnBas = rcBasis( x, patchRadius = patchRadius, meanCenter = meanCenter )
   trnBas$basisMat = trnBas$basisMat[ 1:nBases,  ] # select basis vectors
@@ -411,6 +409,7 @@ rcTrainTranslation <- function(
   ################################### train/test below
   traindf = data.frame( trnMat1$x, trnMat1$position ) / dataScaling
   traindf = data.frame( trnMat1$x ) / dataScaling
+  if ( missing( batchSize ) ) batchSize = round( nrow( trnMat1$x ) / 10 )
   trn = rcTrain( trnMat1$y, traindf, mdlMethod = mdlMethod,
     epochs = epochs, hidden = hidden,
     classification = classification,  batchSize = batchSize )
