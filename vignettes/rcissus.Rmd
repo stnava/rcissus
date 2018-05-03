@@ -11,6 +11,7 @@ vignette: >
 ---
 
 ```{r global options, include=FALSE}
+
 library( rcissus )
 runk = FALSE # controls whether we actually train the models and report results
 diceOverlap <- function( x,  y ) {
@@ -68,6 +69,9 @@ First, we organize the input training dataset.
 
 ```{r regression1,eval=FALSE}
 if ( ! exists( "mth" ) ) mth = 'h2o'
+# to use a custom python install and keras models
+# mth='kerasdnn'
+# Sys.setenv(TENSORFLOW_PYTHON='/usr/local/bin/python3')
 popfns = getANTsRData('show')[1:5]
 testfn = getANTsRData('show')[6]
 # below, we use image lists but one can alternatively replaces lists
