@@ -1,0 +1,182 @@
+---
+title: "Patch-based segmentation and regression with rcissus"
+author: "Brian B. Avants"
+date: "`r Sys.Date()`"
+bibliography: REFERENCES.bib
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteEngine{knitr::knitr}
+  %\VignetteIndexEntry{Patch-based segmentation and regression with rcissus}
+  %\usepackage[UTF-8]{inputenc}
+---
+
+```{r global options, include=FALSE}
+library( keras )
+library( rcissus )
+
+runk = FALSE # controls whether we actually train the models and report results
+diceOverlap <- function( x,  y ) {
+  ulabs = sort( unique( c( unique(x), unique(y) ) ) )
+  dicedf = data.frame( labels = ulabs, dice = rep( NA, length( ulabs ) ) )
+  for ( ct in 1:length(ulabs) ) {
+    denom = sum( x == ulabs[ct] ) + sum( y == ulabs[ct] )
+    dd = sum( x == ulabs[ct] & y == ulabs[ct] ) * 2
+    dicedf[  ct, 'dice' ] = dd / denom
+  }
+  return( dicedf )
+}
+```
+
+
+# RCISSUS
+
+> After Narcissus, who sought his reflection.
+
+## Background and motivation
+
+Rcissus provides fast eigenpatch-based deep learning.  Rcissus, as a package,
+is valuable for either segmentation or image translation (mapping intensities
+between imaging modalities). However, the framework is extensible to many possible
+applications beyond what is covered here.
+
+Rcissus uses an eigenvector representation of image patches in order to allow
+rapid and generalizable training from small $n$ datasets.  The representation is
+based on [RIPMMARC](https://www.ncbi.nlm.nih.gov/pubmed/25449745) and [RIPMMARC-POP](https://ww5.aievolution.com/hbm1701/index.cfm?do=abs.viewAbs&abs=2175).
+The core idea is to use patch-based dimensionality reduction
+( e.g.  [@Dhillon2014; @Avants2014; @Kandel2015] ) to simplify the image
+representation and avoid the need for convolutional networks.  Each image patch
+is compressed to a *k-dimensional basis representation.*
+
+With this strategy, the model training instances -- and their size -- are determined by the
+number of patches and the size of the basis, not the
+number of image examples.  This makes the approach computationally fast,
+memory efficient and relevant to much smaller datasets,
+potentially reducing the need for augmentation and high-performance GPUs. These
+models run fairly efficiently on CPU architecture. Information scale is controlled
+by both the patch size and the number of eigenvectors used for the patch-based
+representation.
+
+In examples below, the epochs are limited to allow quick building. One should increase the epochs to get better results. The keras-based models are much more flexible than those provided by h2o and will likely serve as the foundation for further development.
+
+
+# Regression
+
+## One source modality
+
+An example predicting raw intensity from gradient images. The examples,
+here, are 2D but should work in 3D with identical code.
+
+First, we organize the input training dataset.
+
+```{r regression1,eval=FALSE}
+downsample <- function( x, scl = 4 ) {
+  xx = resampleImage( x, scl * antsGetSpacing( x ), useVoxels = F )
+  return( resampleImageToTarget(  xx, x  ) )
+}
+if ( ! exists( "mth" ) ) mth = 'kerasdnn'
+popfns = getANTsRData('show')[1:5]
+testfn = getANTsRData('show')[6]
+# below, we use image lists but one can alternatively replaces lists
+# with vectors of filenames - just do so consistently
+popGT = list( )  # ground truth
+popGR = list( )  # gradient
+masks = list( )  # sample masks
+nsam = 2000 # samples
+################################### train features below
+for ( i in 1:length( popfns ) ) {
+  popGT[[ i ]] = antsImageRead( getANTsRData( popfns[ i ] ) )
+  popGR[[ i ]] = downsample( popGT[[ i ]] )
+  masks[[ i ]] = randomMask( thresholdImage( popGT[[ i ]], 1 , 255  ) , nsam )
+  }
+```
+
+
+Use high-level code to run the study's training component.
+
+```{r reg1train,eval=FALSE}
+# out of sample prediction ....
+nBases = 10
+nBasesSeg = 6
+nEpochs = 200
+hdn = c( 32, 64, 128, 256, 512, 1024, 2048 ) # depth of network
+dmdl = rcTrainTranslation( popGR, popGT, masks, mdlMethod = mth,
+  nBases = nBases, patchRadius = 4, nsamples = nsam, meanCenter = F,
+  hidden = hdn,  epochs = 2 )
+
+```
+
+Out of sample prediction.
+
+```{r reg1test,eval=FALSE}
+oosMask =  getANTsRData( testfn ) %>% antsImageRead(  ) %>% getMask()
+oos = getANTsRData( testfn ) %>% antsImageRead(  ) %>% downsample( )
+translatedImages = rcTranslate( x = oos, rcmdl = dmdl, mask = oosMask, classification = FALSE  )
+invisible( plot( translatedImages[[ 1 ]] ) )
+invisible( plot(getANTsRData( testfn ) %>% antsImageRead(  ) ))
+```
+
+
+
+## High-res bases
+
+We have to go deeper into the guts of the method to implement this special case.
+
+```{r regression2mod,eval=FALSE}
+# step 1 - collect data
+library( rcissus )
+popfns = getANTsRData('show')[1:5]
+testfn = getANTsRData('show')[6]
+# below, we use image lists but one can alternatively replaces lists
+# with vectors of filenames - just do so consistently
+popGT = list( )  # ground truth
+popGR = list( )  # gradient
+masks = list( )  # sample masks
+mc = FALSE
+mypr = 8
+nsam = 5000
+################################### train features below
+for ( i in 1:length( popfns ) ) {
+  popGT[[ i ]] = antsImageRead( getANTsRData( popfns[ i ] ) )
+  popGR[[ i ]] = downsample( popGT[[ i ]]  )
+  masks[[ i ]] = randomMask( thresholdImage( popGT[[ i ]], 1 , 255  ) , nsam )
+  }
+################################### critical step - build the basis set from high-res
+trnBas = rcBasis( popGT, patchRadius = mypr, meanCenter = mc )
+trnBas$basisMat = trnBas$basisMat[ 1:25,  ] # select basis vectors
+myseeds = c( 1:length( popGT ) )
+################################### project features to the basis
+trnMat1 = rcTrainingMatrix( popGR, popGT, masks, trnBas, seeds = myseeds,
+  patchRadius = mypr, meanCenter = mc  )
+################################### train/test below
+traindf = data.frame( trnMat1$x ) # , trnMat1$position ) / 100
+hdn = c( 512, 512, 512, 512 )
+trn = rcTrain( trnMat1$y, traindf, mdlMethod = mth,
+  epochs = 1500, hidden = hdn, batchSize = 512 )
+
+################################### test features below
+popGTtest = list( )  # ground truth
+popGRtest = list( )  # lowres
+maskstest = list( )  # sample masks
+for ( i in 1:length( testfn ) ) {
+  popGTtest[[ i ]] = antsImageRead( getANTsRData( testfn[ i ] ) )
+#  popGTtest[[ i ]] = antsImageRead( getANTsRData( popfns[ 1 ] ) )
+  popGRtest[[ i ]] = downsample( popGTtest[[ i ]] )
+  maskstest[[ i ]] = getMask( popGTtest[[ i ]] ) # NOTE: dense prediction!
+  }
+testMat1 = rcTestingMatrix( popGRtest, maskstest, trnBas, seeds = 1,
+  patchRadius = mypr, meanCenter = mc )
+testdf = data.frame( testMat1$x ) # , testMat1$position ) / 100
+prd = rcPredict( trn, testdf, mdlMethod = mth )
+mm = makeImage( maskstest[[1]], as.numeric( prd[,1] ) )
+
+```
+
+### Ground truth: super-res
+
+```{r regGT,eval=FALSE}
+invisible( plot( iMath( popGRtest[[1]], "TruncateIntensity", 0.2,1) ) )
+invisible( plot( denoiseImage(mm) ) )
+invisible( plot( iMath( popGTtest[[1]], "TruncateIntensity", 0.15,1) ) )
+```
+
+# References
